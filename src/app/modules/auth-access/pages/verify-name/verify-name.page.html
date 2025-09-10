@@ -1,0 +1,64 @@
+<ion-header>
+  <ion-toolbar color="white">
+    <ion-buttons slot="start" class="pl-5 py-2">
+      <ion-back-button defaultHref="tabs" text="" icon="arrow-back-outline" color="black"></ion-back-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+<ion-content [fullscreen]="true">
+  <form [formGroup]="verifyNameForm" (submit)="onSubmit()" class="flex flex-col justify-between h-full">
+    <div class="px-10 pt-10">
+      <ion-row>
+        <ion-col class="flex justify-center">
+          <lottie-player src="../assets/animationJson/input-name.json" background="transparent" speed="1" loop autoplay> </lottie-player>
+        </ion-col>
+      </ion-row>
+      <ion-row>
+        <ion-col class="flex justify-center text-center">
+          <label class="text-xl font-bold">Tên bạn là gì?</label>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-3">
+        <ion-col class="flex justify-center text-center">
+          <label class="text-sm text-gray-500">Hãy chia sẻ cho SF được biết để SF phục vụ bạn được tốt hơn nhé</label>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-5">
+        <ion-col>
+          <nz-input-group [nzSuffix]="inputClearTpl" class="custom-nz-input-group-none-boder">
+            <ion-icon name="person" class="text-2xl text-gray-500 pr-4"></ion-icon>
+            <input type="text" nz-input formControlName="name" class="capitalize" placeholder="Nhập tên của bạn" />
+          </nz-input-group>
+          <ng-template #inputClearTpl>
+            <span
+              nz-icon
+              class="ant-input-clear-icon"
+              nzTheme="fill"
+              nzType="close-circle"
+              (click)="verifyNameForm.controls['name'].value == null"
+            ></span>
+          </ng-template>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-2">
+        <ion-col>
+          <p
+            class="mt-1 text-xs text-red-500"
+            *ngIf="verifyNameForm.controls['name'].errors?.['required'] && verifyNameForm.controls['name'].touched"
+          >
+            Vui lòng điền vào trường này
+          </p>
+        </ion-col>
+      </ion-row>
+    </div>
+    <div class="flex flex-col pt-20 pb-10 px-10 text-center">
+      <ion-row>
+        <ion-col class="flex w-full">
+          <ion-button type="submit">
+            <ion-label>Tiếp tục</ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+    </div>
+  </form>
+</ion-content>

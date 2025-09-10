@@ -1,0 +1,24 @@
+*****Run web app
+ionic serve
+
+*****Run watch tailwind css
+npx tailwindcss -i ./src/input.css -o ./src/output.css --watch
+   
+*****build android
+ionic build
+npx cap sync
+npm install @capacitor/android
+npx cap add android
+npx cap copy
+npx cap open android
+
+*****live reload
+---android
+ionic capacitor run ios -l --external
+---ios
+ionic capacitor run android -l --external
+
+
+node version 22.13.0
+angular version 19.1.1
+npm version 11.1.0

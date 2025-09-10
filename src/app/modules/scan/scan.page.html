@@ -1,0 +1,40 @@
+<ion-header class="pt-10">
+  <ion-toolbar class="text-white">
+    <div class="px-3 py-2">
+      <ion-buttons slot="start" class="relative">
+        <ion-back-button defaultHref="tabs/home" text="" icon="chevron-back-outline" color="white"></ion-back-button>
+      </ion-buttons>
+      <ion-title class="font-medium">Quét mã</ion-title>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div class="flex w-full items-center justify-center flex-col">
+    @if (recording) {
+    <p class="text-white font-medium">: #{{ video.orderCode }}</p>
+    <p class="text-white font-medium">Đang quay: {{ durationTimeFormat }}</p>
+    <button nz-button (click)="stopRecordingBtn()">Lưu đơn hàng</button>
+    }
+  </div>
+
+  <!-- overlay khung scan -->
+  <div class="scan-container" #scannerFrame>
+    <div class="scanner-frame"></div>
+  </div>
+
+  <!-- cụm nút dưới -->
+  <div class="scan-btns">
+    <button expand="full" (click)="toggleTorch()">
+      <div *ngIf="!torchEnabled">
+        <ion-icon src="assets/icons/flashlight-off.svg" class="text-2xl"></ion-icon>
+        <label class="block text-sm text-white">Bật đèn pin</label>
+        <!-- đổi label cho đúng trạng thái -->
+      </div>
+      <div *ngIf="torchEnabled">
+        <ion-icon src="assets/icons/flashlight-on.svg" class="text-2xl"></ion-icon>
+        <label class="block text-sm text-white">Tắt đèn pin</label>
+      </div>
+    </button>
+  </div>
+</ion-content>

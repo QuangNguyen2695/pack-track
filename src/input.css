@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@import "tailwindcss-animated";
+
+@theme {
+  --color-primary: #04aca3;
+  --color-primary-500: #07746e;
+  --color-secondary: #ffc62f;
+  --color-tertiary: #fd7e14;
+  --shadow-bottom: 0px 15px 10px -15px rgba(0, 0, 0, 0.3);
+  --shadow-top: 0px -15px 10px -15px rgba(0, 0, 0, 0.3);
+  --shadow-round: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+}

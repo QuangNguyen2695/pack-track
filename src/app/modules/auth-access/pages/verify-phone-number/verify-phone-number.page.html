@@ -1,0 +1,74 @@
+<ion-content [fullscreen]="true">
+  <form [formGroup]="verifyPhoneNumberForm" (submit)="onSubmit()" class="flex flex-col justify-between h-full">
+    <div class="px-10 pt-10">
+      <ion-row>
+        <ion-col class="flex justify-center">
+          <lottie-player src="assets/animationJson/welcome.json" background="transparent" speed="1" loop autoplay> </lottie-player>
+        </ion-col>
+      </ion-row>
+      <ion-row>
+        <ion-col class="flex justify-center text-center">
+          <label class="text-xl font-bold">Cảm ơn bạn đã đồng<br />hành cùng SF BUS</label>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-10">
+        <ion-col>
+          <nz-input-group [nzSuffix]="inputClearTpl" class="custom-nz-input-group-none-boder">
+            <ion-icon name="call" class="text-2xl text-primary pr-4"></ion-icon>
+            <input type="text" nz-input formControlName="phoneNumber" placeholder="Nhập số điện thoại" />
+          </nz-input-group>
+          <ng-template #inputClearTpl>
+            <span
+              nz-icon
+              class="ant-input-clear-icon"
+              nzTheme="fill"
+              nzType="close-circle"
+              (click)="
+              verifyPhoneNumberForm.controls['phoneNumber'].value == null"
+            ></span>
+          </ng-template>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-2">
+        <ion-col>
+          <p
+            class="mt-1 text-xs text-red-500"
+            *ngIf="verifyPhoneNumberForm.controls['phoneNumber'].errors?.['required'] && verifyPhoneNumberForm.controls['phoneNumber'].touched"
+          >
+            Vui lòng điền vào trường này
+          </p>
+          <p
+            class="mt-1 text-xs text-red-500"
+            *ngIf="verifyPhoneNumberForm.controls['phoneNumber'].errors?.['pattern'] && verifyPhoneNumberForm.controls['phoneNumber'].touched"
+          >
+            Vui lòng nhập đúng số điện thoại
+          </p>
+        </ion-col>
+      </ion-row>
+    </div>
+    <div class="flex flex-col px-10 pt-20 text-center">
+      <ion-row>
+        <ion-col class="flex w-full">
+          <ion-button type="submit">
+            <ion-label>Tiếp tục</ion-label>
+          </ion-button>
+        </ion-col>
+      </ion-row>
+      <ion-row class="pt-5">
+        <ion-col>
+          <p class="text-xs">
+            <span
+              >Khi đăng nhập hoặc đăng ký, bạn đồng ý với <span class="text-primary">Điều khoản dịch vụ</span> và
+              <span class="text-primary">Chính sách bảo mật</span> của SF
+            </span>
+          </p>
+        </ion-col>
+      </ion-row>
+      <ion-row>
+        <ion-col>
+          <p class="text-sm">Phiên 7.12.25 ( 1900334556 )</p>
+        </ion-col>
+      </ion-row>
+    </div>
+  </form>
+</ion-content>

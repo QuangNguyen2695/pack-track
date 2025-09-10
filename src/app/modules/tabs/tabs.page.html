@@ -1,0 +1,53 @@
+@if(utils.isApp){
+<ion-tabs #tabs>
+  <ion-tab-bar slot="bottoms">
+    <ion-tab-button tab="home" class="no-ion-padding">
+      <div class="flex items-end w-full h-full">
+        <div class="w-full tab-block">
+          <ion-icon class="w-full text-2xl" name="home-outline"></ion-icon>
+          <ion-label>Trang chủ</ion-label>
+        </div>
+      </div>
+    </ion-tab-button>
+    <ion-tab-button tab="history-ticket">
+      <div class="flex items-end w-full h-full">
+        <div class="w-full tab-block">
+          <ion-icon class="w-full text-2xl" name="time-outline"></ion-icon>
+          <ion-label>Lịch Sử</ion-label>
+        </div>
+      </div>
+    </ion-tab-button>
+    <ion-tab-button>
+      <div class="flex items-end justify-center w-full h-full" (click)="goToScan()">
+        <div class="btn-qr-code">
+          <img src="/assets/imgs/qr-code.gif" />
+        </div>
+        <div class="w-full tab-block">
+          <ion-icon class="opacity-0 w-full text-2xl" name="person-outline"></ion-icon>
+          <ion-label>SFPay</ion-label>
+        </div>
+      </div>
+    </ion-tab-button>
+
+    <ion-tab-button tab="notify" href="/tabs/notify">
+      <div class="flex items-end w-full h-full">
+        <div class="w-full tab-block">
+          <ion-icon class="w-full text-2xl" name="notifications-outline"></ion-icon>
+          <ion-label>Thông Báo</ion-label>
+        </div>
+      </div>
+    </ion-tab-button>
+
+    <ion-tab-button tab="account">
+      <div class="flex items-end w-full h-full">
+        <div class="w-full tab-block">
+          <ion-icon class="w-full text-2xl" name="person-outline"></ion-icon>
+          <ion-label>Tài khoản</ion-label>
+        </div>
+      </div>
+    </ion-tab-button>
+  </ion-tab-bar>
+</ion-tabs>
+} @else {
+<ion-router-outlet class="relative w-full h-full content-body !contents {{current_tab}}"> </ion-router-outlet>
+}

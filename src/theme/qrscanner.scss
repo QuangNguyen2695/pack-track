@@ -1,0 +1,32 @@
+/* Chỉ khi có class camera-preview-active mới làm nền trong suốt */
+body.camera-preview-active,
+body.camera-preview-active ion-app {
+  --background: transparent !important;
+  background: transparent !important;
+}
+
+body.camera-preview-active,
+body.camera-preview-active ion-toolbar {
+  --background: transparent !important;
+  background: transparent !important;
+}
+
+/* Khung overlay, nút… nên đặt fixed để luôn đè lên */
+.scan-container {
+  position: fixed;
+  inset: 0; /* top/right/bottom/left: 0 */
+  pointer-events: none; /* tuỳ bạn: nếu muốn không chặn thao tác */
+  z-index: 9998;
+}
+
+.scan-btns {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999; /* cao hơn để đè trên hết */
+}

@@ -1,0 +1,5 @@
+<div class="modal-sheet-block w-[500px]" >
+  <div *ngIf="template" class="p-4">
+    <ng-template [ngTemplateOutlet]="template" [ngTemplateOutletContext]="{ $implicit: dataInput }"></ng-template>
+  </div>
+</div>

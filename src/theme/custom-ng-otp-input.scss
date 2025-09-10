@@ -1,0 +1,11 @@
+ngx-otp-input {
+    .ngx-otp-input-box {
+        border: 0 !important;
+        border-bottom: 1px solid var(--primary) !important;
+        border-radius: 0 !important;
+        width: 45px !important;
+        height: 45px !important;
+        transition: opacity 0.5s;
+    }
+
+}

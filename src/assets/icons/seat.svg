@@ -1,0 +1,50 @@
+<svg
+  class="custom-svg"
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  height="800px"
+  width="800px"
+  version="1.1"
+  id="Layer_1"
+  viewBox="-25.6 -25.6 563.20 563.20"
+  xml:space="preserve"
+  fill="currentColor"
+  stroke="currentColor"
+  stroke-width="11.264"
+>
+  <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+  <g
+    id="SVGRepo_tracerCarrier"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  >
+    <g>
+      <path
+        style="fill:currentColor;"
+        d="M498.455,213.211v183.304c0,25.437-20.629,46.053-46.053,46.053h-2.709h-40.635V308.243v-5.648 c0-31.37,16.173-58.975,40.635-74.917C463.712,218.535,480.467,213.211,498.455,213.211z"
+      />
+      <polygon
+        style="fill:currentColor;"
+        points="449.693,442.568 449.693,490.436 377.972,490.436 377.972,442.568 409.058,442.568"
+      />
+    </g>
+    <path
+      style="fill:currentColor;"
+      d="M449.693,78.114v149.564c-24.462,15.942-40.635,43.547-40.635,74.917v5.648H102.942v-5.648 c0-31.37-16.173-58.975-40.635-74.917V78.114c0-31.221,25.316-56.55,56.55-56.55h274.286 C424.378,21.564,449.693,46.893,449.693,78.114z"
+    />
+    <polygon
+      style="fill:currentColor;"
+      points="409.058,308.243 409.058,442.568 377.972,442.568 134.028,442.568 102.942,442.568 102.942,308.243"
+    />
+    <g>
+      <polygon
+        style="fill:currentColor;"
+        points="134.028,442.568 134.028,490.436 62.307,490.436 62.307,442.568 102.942,442.568"
+      />
+      <path
+        style="fill:currentColor;"
+        d="M62.307,227.677c24.462,15.942,40.635,43.547,40.635,74.917v5.648v134.326H62.307h-2.709 c-25.424,0-46.053-20.615-46.053-46.053V213.211C31.533,213.211,48.288,218.535,62.307,227.677z"
+      />
+    </g>
+  </g>
+</svg>

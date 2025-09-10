@@ -1,0 +1,108 @@
+<div class="flex !bg-primary pb-2 w-full">
+  <div class="w-full max-w-[1128px] mx-auto">
+    <ion-row class="flex justify-between">
+      <ion-col size="4" class="flex flex-row gap-4 w-ful items-center">
+        <div class="flex flex-row gap-1 pr-4 items-center">
+          <div nz-dropdown [nzDropdownMenu]="language" class="flex flex--row gap-1">
+            <img src="assets/web/icons/vietnam.svg" width="26" alt="language icon" />
+            <span class="mx-2 text-white">Ngôn ngữ: Vi</span>
+            <img src="assets/web/icons/icon_form_droplist.svg" width="10" alt="icon_form_droplist" />
+          </div>
+          <nz-dropdown-menu #language="nzDropdownMenu">
+            <ul nz-menu nzSelectable>
+              <li nz-menu-item><img src="assets/web/icons/vietnam.svg" width="26" alt="language icon" /> Việt Nam</li>
+              <li nz-menu-item><img src="assets/web/icons/vietnam.svg" width="26" alt="language icon" /> English</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+        <div class="flex items-center w-[1px] h-[50%] bg-white"></div>
+        <div class="flex flex--row gap-1">
+          <div nz-dropdown [nzDropdownMenu]="app" class="flex flex--row gap-1 items-center">
+            <img src="assets/web/icons/download_app.svg" width="26" alt="language icon" />
+            <span class="mx-2 text-white">Tải ứng dụng</span>
+            <img src="assets/web/icons/icon_form_droplist.svg" width="10" alt="icon_form_droplist" />
+          </div>
+          <nz-dropdown-menu #app="nzDropdownMenu" class="w-16">
+            <ul nz-menu nzSelectable class="flex flex-col">
+              <li nz-menu-item class="flex flex-row"><img src="assets/web/icons/CHPlay.svg" width="70"
+                  alt="language icon" /> Android</li>
+              <li nz-menu-item class="flex flex-row"><img src="assets/web/icons/AppStore.svg" width="70"
+                  alt="language icon" /> IOS</li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+      </ion-col>
+      <ion-col size="4" class="flex justify-center">
+        <img width="295" height="60" src="assets/web/icons/logo_new.svg" />
+      </ion-col>
+      <ion-col size="4" class="flex justify-end items-center">
+        <div class="flex flex--row gap-1 pr-4 items-center">
+          <div nz-dropdown [nzDropdownMenu]="account" [nzPlacement]="'bottomRight'" class="flex flex--row gap-1">
+            <img src="assets/web/icons/profile.svg" width="26" alt="language icon" />
+            <span class="mx-2 text-white">Quang</span>
+            <img src="assets/web/icons/icon_form_droplist.svg" width="10" alt="icon_form_droplist" />
+          </div>
+          <nz-dropdown-menu #account="nzDropdownMenu">
+            <ul nz-menu nzSelectable>
+              <li nz-menu-item class="!px-4" routerLink="/account-info/account">
+                <img src="assets/web/icons/SFPay.svg" width="26" alt="language icon" /> SF Pay
+              </li>
+              <li nz-menu-item class="!px-4" routerLink="/account-detail">
+                <img src="assets/web/icons/profile.svg" width="26" alt="language icon" /> Tài Khoản
+              </li>
+              <li nz-menu-item class="!px-4" routerLink="/account-info/history-ticket">
+                <img src="assets/web/icons/history.svg" width="26" alt="language icon" /> Lịch sử mua vé
+              </li>
+              <li nz-menu-item class="!px-4" routerLink="/account-info/account-address">
+                <img src="assets/web/icons/address.svg" width="26" alt="language icon" /> Địa chỉ của bạn
+              </li>
+              <li nz-menu-item class="!px-4" routerLink="/account-info/password">
+                <img src="assets/web/icons/password.svg" width="26" alt="language icon" /> Đặt lại mật khẩu
+              </li>
+              <li nz-menu-item class="!px-4" routerLink="/account-detail">
+                <img src="assets/web/icons/logout.svg" width="26" alt="language icon" /> Đăng xuất
+              </li>
+            </ul>
+          </nz-dropdown-menu>
+        </div>
+      </ion-col>
+    </ion-row>
+    <ion-row class="pt-4 flex justify-center">
+      <ion-col class="flex gap-4" size="10">
+        <ion-tab-button class="flex w-full py-1" tab="home">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold" routerLink="/tabs/home"
+              [ngClass]="{ 'menu-selected': isCurrentSubUrlValid('/tabs/home') }">TRANG CHỦ
+            </ion-label>
+          </div>
+        </ion-tab-button>
+        <ion-tab-button class="flex w-full py-1">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold" routerLink="/find-bus"
+              [ngClass]="{ 'menu-selected': isCurrentSubUrlValid('/find-bus') }">LỊCH TRÌNH</ion-label>
+          </div>
+        </ion-tab-button>
+        <ion-tab-button class="flex w-full py-1">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold">TRA CỨU VÉ</ion-label>
+          </div>
+        </ion-tab-button>
+        <ion-tab-button class="flex w-full py-1">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold">TIN TỨC</ion-label>
+          </div>
+        </ion-tab-button>
+        <ion-tab-button class="flex w-full py-1">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold">HÓA ĐƠN</ion-label>
+          </div>
+        </ion-tab-button>
+        <ion-tab-button class="flex w-full py-1">
+          <div class="flex justify-center w-full">
+            <ion-label class="text-white text-sm font-semibold hover:font-bold">LIÊN HỆ</ion-label>
+          </div>
+        </ion-tab-button>
+      </ion-col>
+    </ion-row>
+  </div>
+</div>

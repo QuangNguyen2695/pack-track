@@ -1,0 +1,28 @@
+.home-slides-session {
+  swiper-container::part(pagination) {
+    bottom: 0;
+  }
+
+  swiper-container::part(wrapper) {
+    padding-bottom: 30px;
+  }
+
+  swiper-container::part(bullet-active) {
+    width: 25px;
+    border-radius: 8px;
+    background-color: var(--primary);
+  }
+}
+
+section:nth-child(odd) {
+  background-color: #fff7f5;
+}
+
+.popular-route-card {
+  border-radius: 12px;
+  width: 355px;
+  min-width: 290px;
+  background: #fff;
+  border: 1px solid rgba(192, 198, 204, 0.4);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.2);
+}

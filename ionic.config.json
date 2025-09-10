@@ -1,0 +1,7 @@
+{
+  "name": "PackTrack",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

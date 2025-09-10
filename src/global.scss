@@ -1,0 +1,156 @@
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+
+//Ng zorro
+@import "../node_modules/ng-zorro-antd/dropdown/style/index.min.css";
+@import "../node_modules/ng-zorro-antd/select/style/index.min.css";
+@import "../node_modules/ng-zorro-antd/affix/style/index.min.css";
+@import "../node_modules/ng-zorro-antd/qr-code/style/index.min.css";
+
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+/* @import "@ionic/angular/css/palettes/dark.class.css"; */
+@import "./theme/custom-radio.scss";
+@import "./theme/qrscanner.scss";
+@import "./theme/custom-ng-otp-input.scss";
+@import "./theme/custom-ion-action-sheet.scss";
+@import "./theme/web.scss";
+
+.tabs-inner {
+  margin-bottom: -35px !important;
+}
+
+ion-toolbar {
+  --border-width: 0 !important;
+  --padding-end: 0;
+  --padding-start: 0;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+
+  ion-title {
+    position: absolute;
+    width: 100%;
+    inset-inline-start: 0;
+  }
+
+  .bg-img-toolbar {
+    background: transparent url(/assets/imgs/city-night-building-high-rise-high-rise.png) repeat-x center / contain;
+  }
+
+  .bg-toolbar {
+    background-color: var(--primary);
+    position: relative;
+    overflow: hidden;
+    opacity: 0.97;
+    padding-top: var(--ion-safe-area-top, 0);
+    display: flex;
+    flex-direction: column;
+    justify-content: end;
+
+    .content-toolbar {
+      position: relative;
+      z-index: 3;
+      /* Nội dung nằm trên lớp phủ */
+      height: auto;
+    }
+  }
+}
+
+ion-content {
+  --ion-background-color: white;
+}
+
+ion-router-outlet[tabs="true"] > .ion-page {
+  --velocity-transition: 0.6s;
+}
+
+ion-router-outlet[tabs="true"] > .ion-page.toRight:not(.ion-page-hidden) {
+  animation: route_enter_right var(--velocity-transition) ease forwards;
+}
+
+ion-router-outlet[tabs="true"] > .ion-page.toLeft:not(.ion-page-hidden) {
+  animation: route_enter_left var(--velocity-transition) ease forwards;
+}
+
+ion-router-outlet[tabs="true"] > .ion-page.ion-page-hidden.toLeft {
+  animation: route_leave_left var(--velocity-transition) ease forwards;
+  display: flex !important;
+}
+
+ion-router-outlet[tabs="true"] > .ion-page.ion-page-hidden.toRight {
+  animation: route_leave_right var(--velocity-transition) ease forwards;
+  display: flex !important;
+}
+
+@keyframes route_enter_left {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes route_enter_right {
+  from {
+    transform: translateX(-100%);
+  }
+
+  to {
+    transform: translateX(0%);
+  }
+}
+
+@keyframes route_leave_left {
+  from {
+    transform: translateX(0%);
+  }
+
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes route_leave_right {
+  from {
+    transform: translateX(0%);
+  }
+
+  to {
+    transform: translateX(100%);
+  }
+}

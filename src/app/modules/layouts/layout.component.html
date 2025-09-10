@@ -1,0 +1,13 @@
+@if(utils.isApp){
+<ion-app class="bg-white">
+  <ion-router-outlet [animated]="true" mode="ios"></ion-router-outlet>
+</ion-app>
+} @else {
+<div class="w-full h-full" [ngClass]="{ 'mode-web': !utils.isApp }">
+  <app-header></app-header>
+  <div class="w-full h-full overflow-y-auto !bg-gray-100" cdkScrollable>
+    <ion-router-outlet [animated]="false" class="contents content-body"></ion-router-outlet>
+    <app-footer></app-footer>
+  </div>
+</div>
+}

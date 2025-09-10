@@ -1,0 +1,22 @@
+.cus-btn {
+    --background: white;
+    --border-radius: 0;
+    --padding-start: 0;
+    --padding-end: 0;
+    --padding-top: 0;
+    --padding-bottom: 0;
+    --background-activated: var(--primary);
+    --color-activated: white;
+}
+
+.cus-btn.confirm {
+    --color: var(--primary);
+}
+
+.cus-btn.cancel {
+    --color: black;
+}
+
+.cus-btn:first-child {
+    border-right: 0.55px solid var(--border);
+}
