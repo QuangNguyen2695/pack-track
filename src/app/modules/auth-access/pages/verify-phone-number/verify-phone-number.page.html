@@ -13,36 +13,23 @@
       </ion-row>
       <ion-row class="pt-10">
         <ion-col>
-          <nz-input-group [nzSuffix]="inputClearTpl" class="custom-nz-input-group-none-boder">
-            <ion-icon name="call" class="text-2xl text-primary pr-4"></ion-icon>
-            <input type="text" nz-input formControlName="phoneNumber" placeholder="Nhập số điện thoại" />
-          </nz-input-group>
-          <ng-template #inputClearTpl>
-            <span
-              nz-icon
-              class="ant-input-clear-icon"
-              nzTheme="fill"
-              nzType="close-circle"
-              (click)="
-              verifyPhoneNumberForm.controls['phoneNumber'].value == null"
-            ></span>
-          </ng-template>
-        </ion-col>
-      </ion-row>
-      <ion-row class="pt-2">
-        <ion-col>
-          <p
-            class="mt-1 text-xs text-red-500"
-            *ngIf="verifyPhoneNumberForm.controls['phoneNumber'].errors?.['required'] && verifyPhoneNumberForm.controls['phoneNumber'].touched"
-          >
-            Vui lòng điền vào trường này
-          </p>
-          <p
-            class="mt-1 text-xs text-red-500"
-            *ngIf="verifyPhoneNumberForm.controls['phoneNumber'].errors?.['pattern'] && verifyPhoneNumberForm.controls['phoneNumber'].touched"
-          >
-            Vui lòng nhập đúng số điện thoại
-          </p>
+          <nz-form-control [nzErrorTip]="userFormPhoneNumberErrorTpl" class="!flex flex-col">
+            <nz-input-group [nzSuffix]="userFormPhoneNumberClearTpl" class="custom-nz-input-group-none-boder">
+              <ion-icon name="call" class="text-2xl text-primary pr-4"></ion-icon>
+              <input type="text" nz-input formControlName="phoneNumber" placeholder="Nhập số điện thoại" />
+            </nz-input-group>
+            <ng-template #userFormPhoneNumberClearTpl>
+              @if(f['phoneNumber'].value){
+              <span nz-icon class="ant-input-clear-icon" nzTheme="fill" nzType="close-circle" (click)="clearValueForm('phoneNumber')"></span>
+              }
+            </ng-template>
+            <ng-template #userFormPhoneNumberErrorTpl let-control>
+              <span class="mt-1 !text-xs text-red-500">
+                @if (f['phoneNumber'].errors?.['required']) { Vui lòng nhập số điện thoại } @if(f['phoneNumber'].errors?.['pattern']) { Vui lòng nhập
+                đúng số điện thoại }
+              </span>
+            </ng-template>
+          </nz-form-control>
         </ion-col>
       </ion-row>
     </div>

@@ -14,7 +14,7 @@
     @if (recording) {
     <p class="text-white font-medium">: #{{ video.orderCode }}</p>
     <p class="text-white font-medium">Đang quay: {{ durationTimeFormat }}</p>
-    <button nz-button (click)="stopRecordingBtn()">Lưu đơn hàng</button>
+    <button nz-button (click)="saveVideo()">Lưu đơn hàng</button>
     }
   </div>
 

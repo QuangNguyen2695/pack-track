@@ -1,18 +1,17 @@
-import { Component, OnInit } from '@angular/core';
-import { AuthAccessService } from '../../../../shared/services/auth-access-service/auth-access.service';
-import { Router } from '@angular/router';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { CredentialService } from '@rsApp/shared/services/credential-service/credential.service';
-import { Utils } from '@rsApp/shared/utils/utils';
+import { Component, OnInit } from "@angular/core";
+import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { Router } from "@angular/router";
+import { FormBuilder, FormGroup, Validators } from "@angular/forms";
+import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
+import { Utils } from "@rsApp/shared/utils/utils";
 
 @Component({
-  selector: 'app-verify-phone-number',
-  templateUrl: './verify-phone-number.page.html',
-  styleUrls: ['./verify-phone-number.page.scss'],
-  standalone: false
+  selector: "app-verify-phone-number",
+  templateUrl: "./verify-phone-number.page.html",
+  styleUrls: ["./verify-phone-number.page.scss"],
+  standalone: false,
 })
 export class VerifyPhoneNumberPage implements OnInit {
-
   verifyPhoneNumberForm!: FormGroup;
 
   constructor(
@@ -20,10 +19,8 @@ export class VerifyPhoneNumberPage implements OnInit {
     private router: Router,
     private fb: FormBuilder,
     private credentialService: CredentialService,
-    private utils: Utils
-  ) {
-
-  }
+    private utils: Utils,
+  ) {}
 
   ngOnInit() {
     this.initForm();
@@ -31,10 +28,20 @@ export class VerifyPhoneNumberPage implements OnInit {
 
   initForm() {
     this.verifyPhoneNumberForm = this.fb.group({
-      phoneNumber: ['0961090433', [Validators.required, Validators.pattern(/(?:\+84|0084|0)(3|5|7|8|9)[0-9]{8}/)]],
+      phoneNumber: ["0961090433", [Validators.required, Validators.pattern(/(?:\+84|0084|0)[235789][0-9]{1,2}[0-9]{7}(?:[^\d]+|$)/g)]],
     });
   }
 
+  get f() {
+    return this.verifyPhoneNumberForm.controls;
+  }
+
+  clearValueForm(controlName: string) {
+    this.f[controlName].patchValue("");
+    this.f[controlName].markAsTouched();
+    this.f[controlName].markAsDirty();
+    this.f[controlName].updateValueAndValidity();
+  }
 
   onSubmit() {
     if (!this.verifyPhoneNumberForm.valid) {

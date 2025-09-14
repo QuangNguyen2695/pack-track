@@ -1,13 +1,89 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>account</ion-title>
+<ion-header>
+  <ion-toolbar class="text-white">
+    <div class="bg-img-toolbar">
+      <div class="bg-toolbar">
+        <div class="bg-overlay"></div>
+        <div class="px-3 py-2 content-toolbar flex items-center justify-between pt-2">
+          <ion-buttons slot="start">
+            <ion-back-button defaultHref="tabs/home" text="" icon="chevron-back-outline" color="white"></ion-back-button>
+          </ion-buttons>
+          <ion-title class="ion-no-padding text-center"> Tài Khoản </ion-title>
+        </div>
+      </div>
+    </div>
   </ion-toolbar>
 </ion-header>
-
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">account</ion-title>
-    </ion-toolbar>
-  </ion-header>
+<ion-content [fullscreen]="true" #content>
+  <ion-list>
+    <div class="box-session">
+      <ion-item class="item-account" [button]="true" (click)="goToDetailAccount()">
+        <ion-icon src="assets/icons/user-account.svg" class="text-7xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">{{currentUser?.name}}</label>
+          <label class="block text-gray-500 font-medium py-1">{{currentUser?.phoneNumber}}</label>
+        </div>
+      </ion-item>
+    </div>
+    <div class="box-session">
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/points-loyalty.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">0 Điểm</label>
+        </div>
+      </ion-item>
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/bell-ringing.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Thông báo</label>
+        </div>
+      </ion-item>
+    </div>
+    <div class="box-session">
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/setting.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Cài đặt</label>
+          <label class="block text-gray-500 text-sm font-medium py-1">Sinh trắc học, Đổi mật khẩu,...</label>
+        </div>
+      </ion-item>
+    </div>
+    <div class="box-session">
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/support.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Gửi yêu cầu hỗ trợ</label>
+        </div>
+      </ion-item>
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/community.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Giới thiệu bạn bè</label>
+        </div>
+      </ion-item>
+      <ion-item [button]="true">
+        <ion-icon src="assets/icons/connect.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Cộng đồng</label>
+        </div>
+      </ion-item>
+    </div>
+    <div class="box-session">
+      <ion-item [button]="true" (click)="logout()">
+        <ion-icon src="assets/icons/logout.svg" class="text-3xl"></ion-icon>
+        <div class="pl-4">
+          <label class="block font-medium text-md">Đăng xuất</label>
+        </div>
+      </ion-item>
+    </div>
+  </ion-list>
+  <div class="border-t border-gray-300 flex justify-center pt-3 p-8 px-16">
+    <p class="text-xs text-gray-500 text-center font-normal leading-6">
+      <span class="uppercase">
+        Công ty cổ phần xe khách SF Bus<br />
+        SF Bus Lines </span
+      ><br />
+      <span> Địa chỉ: 01 Quang Trung, P.8 Thành Phố Hồ Chí Minh. </span><br />
+      <span> &copy;2025 | <a class="text-primary">www.sfbus.vn</a> | (028) 5656 7667</span>
+    </p>
+  </div>
 </ion-content>

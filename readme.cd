@@ -12,6 +12,9 @@ npx cap add android
 npx cap copy
 npx cap open android
 
+*****Run watch tailwind css
+npx tailwindcss -i ./src/input.css -o ./src/output.css --watch
+
 *****live reload
 ---android
 ionic capacitor run ios -l --external

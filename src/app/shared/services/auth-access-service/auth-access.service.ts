@@ -1,45 +1,41 @@
-import { Injectable } from '@angular/core';
-import { from, of } from 'rxjs';
-import {
-  catchError,
-  delay,
-  map,
-  mergeMap,
-  switchMap,
-  tap,
-} from 'rxjs/operators';
-import { ApiGatewayService } from 'src/app/api-gateway/api-gateaway.service';
-import { CredentialService } from '@rsApp/shared/services/credential-service/credential.service';
+import { Injectable } from "@angular/core";
+import { from, of } from "rxjs";
+import { catchError, delay, map, mergeMap, switchMap, tap } from "rxjs/operators";
+import { ApiGatewayService } from "src/app/api-gateway/api-gateaway.service";
+import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
+import { RequestAuthRescue, RequestForgotPassword, RequestResetPassword, VerifyAuthRescue } from "@rsApp/modules/auth-access/model/auth.model";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class AuthAccessService {
-  constructor(
-    private apiGatewayService: ApiGatewayService,
-    private credentialService: CredentialService
-  ) {}
+  constructor(private apiGatewayService: ApiGatewayService, private credentialService: CredentialService) {}
 
   verifyPhoneNumber(phoneNumber: string) {
     const url = `/auth/verify-phoneNumber?phoneNumber=${phoneNumber}`;
     return this.apiGatewayService.get(url).pipe(
       tap((res: any) => {
-        console.log('🚀 ~ AuthAccessService ~ map ~ res:', res);
+        console.log("🚀 ~ AuthAccessService ~ map ~ res:", res);
       }),
       map((res: any) => {
         return res;
       }),
       catchError((error) => {
-        console.log('🚀 ~ AuthAccessService ~ catchError ~ error:', error);
+        console.log("🚀 ~ AuthAccessService ~ catchError ~ error:", error);
         //write log
         return of([]);
-      })
+      }),
     );
   }
 
   sendOtp(phoneNumber: string) {
-    const url = `/auth/verify-phoneNumber?phoneNumber=${phoneNumber}`;
-    return this.apiGatewayService.get(url).pipe(
+    const requestAuthRescue: RequestAuthRescue = {
+      identifier: phoneNumber,
+      purpose: "2fa",
+    };
+
+    const url = `/auth/rescue/request`;
+    return this.apiGatewayService.post(url, requestAuthRescue).pipe(
       tap((res: any) => {}),
       map((res: any) => {
         return res;
@@ -47,7 +43,7 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of([]);
-      })
+      }),
     );
   }
 
@@ -64,12 +60,10 @@ export class AuthAccessService {
             switchMap(() => this.getCurrentUser()),
             switchMap((user: any) => {
               if (user) {
-                return from(this.credentialService.setCurrentUser(user)).pipe(
-                  map(() => user)
-                );
+                return from(this.credentialService.setCurrentUser(user)).pipe(map(() => user));
               }
               return of(null);
-            })
+            }),
           );
         }
         return of(null);
@@ -77,18 +71,30 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of(error.error);
-      })
+      }),
     );
   }
 
-  verifyOtp(phoneNumber: string, otp: string) {}
+  validateOtp(verifyAuthRescue: VerifyAuthRescue) {
+    const url = `/auth/rescue/verify`;
+    return this.apiGatewayService.post(url, verifyAuthRescue).pipe(
+      tap((res: any) => {}),
+      map((res: any) => {
+        return res;
+      }),
+      catchError((error) => {
+        //write log
+        return of(error.error);
+      }),
+    );
+  }
 
   register(phoneNumber: string, name: string) {
     const url = `/users/register`;
     const user = {
       phoneNumber,
       name,
-      password: 'password123',
+      password: "password123",
       isTempPassWord: true,
     };
     return this.apiGatewayService.post(url, user).pipe(
@@ -99,7 +105,7 @@ export class AuthAccessService {
       catchError((err) => {
         //write log
         return of(err.error);
-      })
+      }),
     );
   }
 
@@ -113,7 +119,7 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of([]);
-      })
+      }),
     );
   }
 
@@ -132,7 +138,7 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of(error.error);
-      })
+      }),
     );
   }
 
@@ -151,7 +157,7 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of(error.error);
-      })
+      }),
     );
   }
 
@@ -173,7 +179,7 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of(error.error);
-      })
+      }),
     );
   }
 
@@ -187,7 +193,35 @@ export class AuthAccessService {
       catchError((error) => {
         //write log
         return of(error.error);
-      })
+      }),
+    );
+  }
+
+  forgotPasswordInApp(requestForgotPassword: RequestForgotPassword) {
+    const url = `/auth/forgot-password-in-app`;
+    return this.apiGatewayService.post(url, requestForgotPassword).pipe(
+      tap((res: any) => {}),
+      map((res: any) => {
+        return res;
+      }),
+      catchError((error) => {
+        //write log
+        return of(error.error);
+      }),
+    );
+  }
+
+  resetPassword(requestResetPassword: RequestResetPassword) {
+    const url = `/auth/reset-password`;
+    return this.apiGatewayService.post(url, requestResetPassword).pipe(
+      tap((res: any) => {}),
+      map((res: any) => {
+        return res;
+      }),
+      catchError((error) => {
+        //write log
+        return of(error.error);
+      }),
     );
   }
 }

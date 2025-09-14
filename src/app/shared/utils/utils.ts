@@ -30,7 +30,7 @@ export class Utils {
     Object.values(formGroup.controls).forEach((control: any) => {
       control.markAsTouched();
       control.markAsDirty();
-      control.updateValueAndValidity({ onlySelf: true });
+      // control.updateValueAndValidity({ onlySelf: true });
       if (control.controls) {
         this.markFormGroupTouched(control);
       }

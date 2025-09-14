@@ -1,0 +1,182 @@
+nz-select {
+  border: none !important;
+
+  nz-select-top-control {
+    height: 38px !important;
+    display: flex !important;
+    align-items: center !important;
+    border-radius: var(--radius-md) !important;
+    border-style: var(--tw-border-style) !important;
+    border-width: 1px !important;
+    border-color: var(--color-border) !important;
+    background-color: var(--color-background) !important;
+    width: 100% !important;
+    font-size: var(--text-xs) !important;
+    line-height: var(--tw-leading, var(--text-xs--line-height)) !important;
+    color: var(--color-foreground) !important;
+
+    input {
+      height: 100% !important;
+      border: none !important;
+    }
+
+    input:focus {
+      border: none !important;
+      box-shadow: none !important;
+    }
+  }
+}
+
+nz-form-item {
+  nz-form-label {
+    font-weight: 500 !important;
+    min-height: 32px !important;
+  }
+  nz-input-group {
+    min-height: 38px !important;
+  }
+}
+
+nz-date-picker {
+  min-height: 38px !important;
+}
+
+.ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input) .ant-select-selector {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.nz-skeleton-large {
+  h3 {
+    height: 40px !important;
+  }
+}
+
+nz-input-group.custom-nz-input-group-none-boder {
+  border: 0 !important;
+  display: flex !important;
+  padding: 0 !important;
+  align-items: center !important;
+  border-bottom: 2px solid var(--primary) !important;
+  height: 38px !important;
+  padding: 6px 16px !important;
+  box-shadow: none !important;
+}
+
+nz-input-group.custom-nz-input-group-none-boder:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary);
+  border-right-width: 0px;
+  box-shadow: none;
+}
+
+nz-input-group.custom-nz-input-group {
+  display: flex !important;
+  align-items: center !important;
+  box-shadow: none !important;
+  height: 38px !important;
+  padding: 6px 16px !important;
+  border-radius: 5px;
+  border-color: var(--color-border) !important;
+
+  .ant-input-focused,
+  .ant-input:focus {
+    border-color: var(--primary) !important;
+  }
+
+  .ant-input[disabled] {
+    color: black !important;
+  }
+}
+
+nz-input-group.custom-nz-input-group:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary) !important;
+}
+
+nz-input-group.custom-nz-input-group.ant-input-affix-wrapper-focused {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.custom-nz-input:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary) !important;
+}
+
+nz-input-group.custom-nz-textarea-group {
+  display: flex !important;
+  align-items: center !important;
+  box-shadow: none !important;
+  height: auto !important;
+  padding: 6px 16px !important;
+  border-radius: 5px;
+  textarea {
+    padding: 0;
+  }
+  .ant-input-focused,
+  .ant-input:focus {
+    border-color: var(--primary) !important;
+  }
+
+  .ant-input[disabled] {
+    color: black !important;
+  }
+}
+
+nz-input-group.custom-nz-textarea-group:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary) !important;
+}
+
+nz-input-group.custom-nz-textarea-group.ant-input-affix-wrapper-focused {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.custom-nz-input:focus {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.input-active {
+  border-color: var(--primary);
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.ant-dropdown {
+  .ant-menu-title-content {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+  }
+}
+
+.custom-nz-select.bus-goods-detail {
+  nz-select-top-control {
+    height: 60px !important;
+    align-items: start !important;
+    display: flex !important;
+    padding: 4px 16px !important;
+  }
+}
+
+.nz-checkbox-marker {
+  .ant-checkbox-inner {
+    border-radius: 100%;
+    width: 14px;
+    height: 14px;
+  }
+  .ant-checkbox-inner:after {
+    width: 4px;
+    height: 7px;
+  }
+  .ant-checkbox-checked .ant-checkbox-inner {
+    background-color: #008a2e;
+    border-color: #008a2e;
+  }
+}
+
+nz-input-otp {
+  width: 100%;
+  .ant-otp-input {
+    height: 60px !important;
+    font-size: 24px;
+  }
+}

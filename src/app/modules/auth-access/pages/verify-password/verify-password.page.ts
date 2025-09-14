@@ -1,14 +1,15 @@
-import { Component, OnInit } from '@angular/core';
-import { FormGroup, FormBuilder, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthAccessService } from '../../../../shared/services/auth-access-service/auth-access.service';
-import { CredentialService } from '@rsApp/shared/services/credential-service/credential.service';
-import { UtilsModal } from '@rsApp/shared/utils/utils-modal';
+import { Component, OnInit } from "@angular/core";
+import { FormGroup, FormBuilder, Validators } from "@angular/forms";
+import { Router } from "@angular/router";
+import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
+import { UtilsModal } from "@rsApp/shared/utils/utils-modal";
+import { toast } from "ngx-sonner";
 
 @Component({
-  selector: 'app-verify-password',
-  templateUrl: './verify-password.page.html',
-  styleUrls: ['./verify-password.page.scss'],
+  selector: "app-verify-password",
+  templateUrl: "./verify-password.page.html",
+  styleUrls: ["./verify-password.page.scss"],
   standalone: false,
 })
 export class VerifyPasswordPage implements OnInit {
@@ -22,7 +23,7 @@ export class VerifyPasswordPage implements OnInit {
     private router: Router,
     private fb: FormBuilder,
     private utilsModal: UtilsModal,
-    private credentialService: CredentialService
+    private credentialService: CredentialService,
   ) {}
 
   ngOnInit() {
@@ -41,8 +42,19 @@ export class VerifyPasswordPage implements OnInit {
 
   initForm() {
     this.verifyPasswordForm = this.fb.group({
-      password: ['password123', [Validators.required]],
+      password: ["password123", [Validators.required]],
     });
+  }
+
+  get f() {
+    return this.verifyPasswordForm.controls;
+  }
+
+  clearValueForm(controlName: string) {
+    this.f[controlName].patchValue("");
+    this.f[controlName].markAsTouched();
+    this.f[controlName].markAsDirty();
+    this.f[controlName].updateValueAndValidity();
   }
 
   private markFormGroupTouched(formGroup: FormGroup) {
@@ -66,23 +78,26 @@ export class VerifyPasswordPage implements OnInit {
   }
 
   login(password: string) {
-    this.authAccessService
-      .login(this.userResidual.phoneNumber, password)
-      .subscribe(async (res: any) => {
-        if (res.error) {
-          this.utilsModal.presentCusToast(res.message);
-          return;
-        }
-        this.router.navigateByUrl(`tabs/home`);
-      });
+    this.authAccessService.login(this.userResidual.phoneNumber, password).subscribe(async (res: any) => {
+      if (res.error) {
+        toast.error("Mật khẩu không đúng, vui lòng thử lại");
+        return;
+      }
+      this.router.navigateByUrl(`tabs/home`);
+    });
+  }
+
+  forgotOrCreatePassword() {
+    this.authAccessService.sendOtp(this.userResidual.phoneNumber).subscribe(async (res: any) => {
+      this.router.navigateByUrl(`/auth-access/verify-otp`, { state: { mode: "update-password" } });
+    });
   }
 
   async notMe() {
+    console.log("🚀 ~ VerifyPasswordPage ~ notMe ~ notMe:");
     await this.credentialService.removeUserResidual();
     this.router.navigateByUrl(`/auth-access`);
   }
-
-  forgotPassword() {}
 
   async handleBeforeBack() {
     await this.credentialService.removeUserResidual();

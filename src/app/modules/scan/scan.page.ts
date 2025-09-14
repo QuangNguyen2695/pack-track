@@ -16,6 +16,7 @@ import { CameraPreviewService } from "./services/camera-preview.service";
 import { BarcodeScannerService } from "./services/barcode-scanner.service";
 import { MediaSaveService } from "./services/media-save.service";
 import { SoundService } from "@rsApp/shared/services/sound-service/sound-service";
+import { LoadingService } from "@rsApp/shared/services/loadding-service/loading.service";
 
 type RecState = "idle" | "previewing" | "starting" | "recording" | "stopping";
 
@@ -63,6 +64,7 @@ export class ScanPage implements OnInit, AfterViewInit {
   private scanningPaused = false;
   private seenCodes = new Set<string>();
   private frameCount = 0;
+  private isTransitioning = false;
 
   // Serial queue
   private serialQueue: Promise<void> = Promise.resolve();
@@ -77,6 +79,7 @@ export class ScanPage implements OnInit, AfterViewInit {
     private cam: CameraPreviewService,
     private scanner: BarcodeScannerService,
     private mediaSaver: MediaSaveService,
+    private loadingService: LoadingService,
   ) {}
 
   async ngOnInit() {
@@ -121,18 +124,53 @@ export class ScanPage implements OnInit, AfterViewInit {
   private startScanLoop(intervalMs = 450) {
     this.stopScanLoop();
     this.scanLoopTimer = setInterval(async () => {
-      if (this.scanningPaused || this.recState === "stopping") return;
+      if (this.scanningPaused || this.recState === "stopping" || this.recState === "starting") return;
       try {
-        const base64 = await this.cam.captureSampleBase64(88);
-        if (!base64) return;
+        const samples: string[] = [];
+        const isRecording = this.recState === "recording";
+        for (let i = 0; i < (isRecording ? 2 : 3); i++) {
+          if (i) await this.sleep(isRecording ? 60 : 40);
 
-        const dataUrl = `data:image/jpeg;base64,${base64}`;
+          let dataUrl: string | null = null;
+
+          if (isRecording) {
+            // GHI: chụp ra FILE → đọc base64 → xoá file
+            const filePath = await this.cam.captureToFile(82);
+            if (filePath) {
+              const base64 = await this.cam.pathToBase64Any(filePath);
+              await this.cam.deleteFile(filePath);
+              if (base64) dataUrl = `data:image/jpeg;base64,${base64}`;
+            }
+          } else {
+            // PREVIEW: dùng sample (nhanh)
+            const base64 = await this.cam.captureSampleBase64(88);
+            if (base64) dataUrl = `data:image/jpeg;base64,${base64}`;
+          }
+
+          if (dataUrl) samples.push(dataUrl);
+        }
+        if (!samples.length) return;
+
+        const scored = await Promise.all(samples.map(async (d) => [await this.cam.sharpnessScore(d), d] as [number, string]));
+        scored.sort((a, b) => b[0] - a[0]);
+        const bestDataUrl = scored[0][1];
+        // const base64 = bestDataUrl.split(",")[1];
+        if (!bestDataUrl) return;
+
+        const luma = await this.cam.avgLuma(bestDataUrl);
+        if (luma < 40 && !this.torchEnabled) {
+          // ngưỡng 30–50 tuỳ môi trường
+          try {
+            await this.toggleTorch();
+          } catch {}
+        }
+        // const dataUrl = `data:image/jpeg;base64,${base64}`;
         this.frameCount = (this.frameCount + 1) % 3;
 
         const result: Result | null =
           this.frameCount === 0
-            ? await this.scanner.decodeRobust(dataUrl) // nặng, thưa
-            : await this.scanner.decodeFast(dataUrl); // nhanh, thường xuyên
+            ? await this.scanner.decodeRobust(bestDataUrl) // nặng, thưa
+            : await this.scanner.decodeFast(bestDataUrl); // nhanh, thường xuyên
         if (!result) return;
 
         const code = result.getText()?.trim();
@@ -165,26 +203,53 @@ export class ScanPage implements OnInit, AfterViewInit {
     await this.runSerial(async () => {
       if (!code) return;
       if (this.seenCodes.has(code)) return;
+      if (this.isTransitioning) return; // ⬅️ chặn đua
       this.seenCodes.add(code);
 
-      if (this.recState === "recording") {
-        try {
-          await this.soundService.playAndWait(this.detectNewOrderVoice);
-          await this.soundService.playAndWait(this.savingOrderVoice);
-        } catch {}
-        await this.stopInlineRecordingAndSave();
-        try {
-          await this.soundService.playAndWait(this.successVoice);
-        } catch {}
-        this.resetCounter();
-      }
+      this.isTransitioning = true;
+      this.scanningPaused = true; // ⬅️ dừng chụp frame ngay
 
-      await this.startNewOrder(code);
+      try {
+        if (this.recState === "recording") {
+          this.loadingService.loadingOn();
+          this.stopCounter();
+
+          try {
+            await this.soundService.playAndWait(this.detectNewOrderVoice);
+            await this.soundService.playAndWait(this.savingOrderVoice);
+          } catch {}
+
+          // Dừng & lưu clip hiện tại
+          await this.stopInlineRecordingAndSave();
+
+          try {
+            await this.soundService.playAndWait(this.successVoice);
+          } catch {}
+
+          // Cho encoder nhả tài nguyên hoàn toàn (tránh crash khi start lại)
+          await this.sleep(350); // 300–500ms tuỳ máy
+
+          this.resetCounter();
+        }
+
+        // Bắt đầu đơn mới
+        await this.startNewOrder(code);
+
+        // Chờ recorder vào trạng thái "recording" hẳn rồi mới cho scan chạy lại
+        for (let i = 0; i < 8 && this.recState !== "recording"; i++) {
+          await this.sleep(100);
+        }
+      } finally {
+        this.loadingService.loadingOff();
+        this.scanningPaused = false; // cho phép scan lại (vừa quay vừa quét)
+        this.isTransitioning = false;
+      }
     });
   }
 
   // ====== Record flow ======
   private async startInlinePreview() {
+    const dpr = window.devicePixelRatio || 1;
     const opts: CameraPreviewOptions = {
       position: "rear",
       x: 0,
@@ -192,10 +257,11 @@ export class ScanPage implements OnInit, AfterViewInit {
       width: window.innerWidth,
       height: window.innerHeight,
       toBack: true,
-      storeToFile: false,
+      storeToFile: true, // << BẬT
       disableAudio: false,
     };
     await this.cam.start(opts);
+    await this.cam.trySetContinuousFocus?.();
     document.body.classList.add("camera-preview-active");
     this.recState = "previewing";
     this.resumeScanLoop();
@@ -208,21 +274,24 @@ export class ScanPage implements OnInit, AfterViewInit {
     this.recState = "starting";
     try {
       await this.sleep(220);
+      await this.cam.trySetContinuousFocus?.();
       // không pause scan để vừa quay vừa quét
       await this.cam.startRecord();
+
       await this.sleep(260);
       this.recording = true;
       this.recState = "recording";
+      this.loadingService.loadingOff();
     } catch (e) {
       this.recording = false;
       this.recState = "previewing";
       this.resumeScanLoop();
+      this.loadingService.loadingOff();
     }
   }
 
   private async stopInlineRecordingAndSave(): Promise<string | undefined> {
     if (this.recState !== "recording") return;
-
     this.recState = "stopping";
     try {
       const nativePath = await this.cam.stopRecord();
@@ -233,6 +302,7 @@ export class ScanPage implements OnInit, AfterViewInit {
 
       const baseName = (this.video?.name || this.video?.orderCode || "video").replace(/[^\w\-]+/g, "_").slice(0, 40);
       const savedPath = await this.mediaSaver.saveVideo(nativePath, baseName, "PackTrack Videos");
+
       return savedPath;
     } catch (e) {
       this.recording = false;
@@ -249,14 +319,19 @@ export class ScanPage implements OnInit, AfterViewInit {
     this.video.startTime = new Date();
 
     try {
+      this.loadingService.loadingOn();
       await this.soundService.playAndWait(this.newOrderVoice);
       await this.startInlineRecording();
       this.startCounter();
-    } catch {}
+    } catch {
+      this.loadingService.loadingOff();
+    }
   }
 
   async saveVideo() {
     if (this.savingInProgress) return;
+    this.loadingService.loadingOn();
+    this.stopCounter();
     this.savingInProgress = true;
     try {
       if (this.recState === "starting") {
@@ -271,9 +346,11 @@ export class ScanPage implements OnInit, AfterViewInit {
       await this.stopInlineRecordingAndSave();
       await this.soundService.playAndWait(this.successVoice);
       this.resumeScanLoop();
+      this.loadingService.loadingOff();
     } finally {
       this.resetCounter();
       this.savingInProgress = false;
+      this.loadingService.loadingOff();
     }
   }
 
@@ -329,12 +406,5 @@ export class ScanPage implements OnInit, AfterViewInit {
   getPolygonPoints(): string {
     if (!this.cornerPoints || this.cornerPoints.length !== 4) return "";
     return this.cornerPoints.map((p) => `${p[0]},${p[1]}`).join(" ");
-  }
-
-  async stopRecordingBtn() {
-    await this.soundService.playAndWait(this.savingOrderVoice);
-    const uri = await this.stopInlineRecordingAndSave();
-    await this.soundService.playAndWait(this.successVoice);
-    console.log("Saved to:", uri);
   }
 }

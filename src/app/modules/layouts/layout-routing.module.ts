@@ -8,12 +8,12 @@ const routes: Routes = [
     path: "",
     component: LayoutComponent,
     loadChildren: () => import("../tabs/tabs.module").then((m) => m.TabsPageModule),
-    // canActivate: [AuthGuard],
+    canActivate: [AuthGuard],
   },
   {
     path: "scan",
     loadChildren: () => import("../scan/scan.module").then((m) => m.ScanPageModule),
-    // canActivate: [AuthGuard],
+    canActivate: [AuthGuard],
   },
 ];
 

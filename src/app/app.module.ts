@@ -14,6 +14,7 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from "@angular/common/http";
 import { TokenInterceptor } from "./Interceptor/token.interceptor";
 import { LoadingInterceptor } from "./Interceptor/loading-interceptor";
 import { LoaddingScreenComponent } from "./shared/component/loadding-screen/loadding-screen.component";
+import { NgxSonnerToaster } from "ngx-sonner";
 
 @NgModule({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -28,6 +29,7 @@ import { LoaddingScreenComponent } from "./shared/component/loadding-screen/load
     ScrollingModule,
     FilterPipe,
     LoaddingScreenComponent,
+    NgxSonnerToaster,
   ],
   providers: [
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy },

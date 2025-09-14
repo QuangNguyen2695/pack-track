@@ -1,17 +1,17 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
-import { AuthAccessService } from '../../../../shared/services/auth-access-service/auth-access.service';
-import { CredentialService } from '@rsApp/shared/services/credential-service/credential.service';
+import { Component, OnInit } from "@angular/core";
+import { FormBuilder, FormGroup, Validators } from "@angular/forms";
+import { Router } from "@angular/router";
+import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
+import { Utils } from "@rsApp/shared/utils/utils";
 
 @Component({
-  selector: 'app-verify-name',
-  templateUrl: './verify-name.page.html',
-  styleUrls: ['./verify-name.page.scss'],
-  standalone: false
+  selector: "app-verify-name",
+  templateUrl: "./verify-name.page.html",
+  styleUrls: ["./verify-name.page.scss"],
+  standalone: false,
 })
 export class VerifyNamePage implements OnInit {
-
   verifyNameForm!: FormGroup;
   userResidual!: any;
 
@@ -19,10 +19,9 @@ export class VerifyNamePage implements OnInit {
     private authAccessService: AuthAccessService,
     private router: Router,
     private fb: FormBuilder,
-    private credentialService: CredentialService
-  ) {
-
-  }
+    private credentialService: CredentialService,
+    private utils: Utils,
+  ) {}
 
   ngOnInit() {
     this.initForm();
@@ -40,22 +39,24 @@ export class VerifyNamePage implements OnInit {
 
   initForm() {
     this.verifyNameForm = this.fb.group({
-      name: ['', [Validators.required]],
+      name: ["", [Validators.required]],
     });
   }
 
-  private markFormGroupTouched(formGroup: FormGroup) {
-    Object.values(formGroup.controls).forEach((control: any) => {
-      control.markAsTouched();
-      if (control.controls) {
-        this.markFormGroupTouched(control);
-      }
-    });
+  get f() {
+    return this.verifyNameForm.controls;
+  }
+
+  clearValueForm(controlName: string) {
+    this.f[controlName].patchValue("");
+    this.f[controlName].markAsTouched();
+    this.f[controlName].markAsDirty();
+    this.f[controlName].updateValueAndValidity();
   }
 
   onSubmit() {
     if (!this.verifyNameForm.valid) {
-      this.markFormGroupTouched(this.verifyNameForm);
+      this.utils.markFormGroupTouched(this.verifyNameForm);
       return;
     }
 
@@ -68,10 +69,10 @@ export class VerifyNamePage implements OnInit {
     this.authAccessService.sendOtp(this.userResidual.phoneNumber).subscribe(async (res: any) => {
       const userResidual = {
         phoneNumber: this.userResidual.phoneNumber,
-        name: name
-      }
+        name: name,
+      };
       await this.credentialService.setUserResidual(userResidual);
-      this.router.navigateByUrl(`/auth-access/verify-otp`);
+      this.router.navigateByUrl(`/auth-access/verify-otp`, { state: { mode: "register" } });
     });
   }
 }
