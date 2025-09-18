@@ -4,12 +4,20 @@ import { catchError, delay, map, mergeMap, switchMap, tap } from "rxjs/operators
 import { ApiGatewayService } from "src/app/api-gateway/api-gateaway.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { RequestAuthRescue, RequestForgotPassword, RequestResetPassword, VerifyAuthRescue } from "@rsApp/modules/auth-access/model/auth.model";
+import { DeviceInfoService } from "../device/device-info.service";
+import { DeviceAccessService } from "../device/device-access.service";
+import { DevicePlatform } from "@rsApp/shared/models/device.model";
 
 @Injectable({
   providedIn: "root",
 })
 export class AuthAccessService {
-  constructor(private apiGatewayService: ApiGatewayService, private credentialService: CredentialService) {}
+  constructor(
+    private apiGatewayService: ApiGatewayService,
+    private credentialService: CredentialService,
+    private deviceInfoService: DeviceInfoService,
+    private deviceAccessService: DeviceAccessService,
+  ) {}
 
   verifyPhoneNumber(phoneNumber: string) {
     const url = `/auth/verify-phoneNumber?phoneNumber=${phoneNumber}`;
@@ -48,29 +56,50 @@ export class AuthAccessService {
   }
 
   login(phoneNumber: string, password: string) {
-    const user = {
-      phoneNumber,
-      password,
-    };
+    const user = { phoneNumber, password };
     const url = `/auth/login?phoneNumber=${phoneNumber}`;
+
     return this.apiGatewayService.post(url, user).pipe(
+      // Sau khi login thành công => set token
       switchMap((res: any) => {
-        if (res) {
-          return from(this.credentialService.setToken(res.access_token)).pipe(
-            switchMap(() => this.getCurrentUser()),
-            switchMap((user: any) => {
-              if (user) {
-                return from(this.credentialService.setCurrentUser(user)).pipe(map(() => user));
-              }
-              return of(null);
-            }),
-          );
-        }
-        return of(null);
+        if (!res?.access_token) return of(null);
+        return from(this.credentialService.setToken(res.access_token)).pipe(map(() => res.access_token));
       }),
+
+      // Lấy user hiện tại
+      switchMap((token) => {
+        if (!token) return of(null);
+        return this.getCurrentUser();
+      }),
+
+      // Nếu có user => set vào credential
+      switchMap((user: any) => {
+        if (!user) return of(null);
+        return from(this.credentialService.setCurrentUser(user)).pipe(map(() => user));
+      }),
+
+      // Đăng ký device sau khi có user
+      switchMap((user: any) => {
+        if (!user) return of(null);
+        // Lấy info thiết bị
+        return from(this.deviceInfoService.getDeviceInfo()).pipe(
+          switchMap((deviceInfo) =>
+            this.deviceAccessService.register({
+              userId: user._id,
+              ...deviceInfo,
+              platform: deviceInfo.platform as DevicePlatform,
+              isPrimary: true,
+            }),
+          ),
+          // Trả lại user sau khi register device thành công
+          map(() => user),
+        );
+      }),
+
       catchError((error) => {
-        //write log
-        return of(error.error);
+        // write log
+        console.error("🚀 ~ AuthAccessService.login error:", error);
+        return of(error.error ?? null);
       }),
     );
   }

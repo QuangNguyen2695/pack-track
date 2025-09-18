@@ -15,6 +15,16 @@ const routes: Routes = [
     loadChildren: () => import("../scan/scan.module").then((m) => m.ScanPageModule),
     canActivate: [AuthGuard],
   },
+  {
+    path: "scan-record",
+    loadChildren: () => import("../scan-record/scan-record.module").then((m) => m.ScanRecordPageModule),
+    canActivate: [AuthGuard],
+  },
+  {
+    path: "pack-detail",
+    loadChildren: () => import("../pack-detail/pack-detail.module").then((m) => m.PackDetailPageModule),
+    canActivate: [AuthGuard],
+  },
 ];
 
 @NgModule({

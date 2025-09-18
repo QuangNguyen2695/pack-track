@@ -1,0 +1,103 @@
+<ion-header>
+  <ion-toolbar class="text-white">
+    <div class="bg-img-toolbar">
+      <div class="bg-toolbar">
+        <div class="px-3 py-2 content-toolbar flex items-center justify-between pt-2">
+          <ion-buttons slot="start">
+            <ion-back-button defaultHref="tabs" text="" icon="chevron-back-outline" color="white"></ion-back-button>
+          </ion-buttons>
+          <ion-title class="ion-no-padding text-center"> Chi tiết Pack </ion-title>
+        </div>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <ng-container *ngIf="loading">
+    <ion-skeleton-text animated style="width: 100%; height: 200px"></ion-skeleton-text>
+    <ion-skeleton-text animated style="width: 60%; height: 16px; margin-top: 12px"></ion-skeleton-text>
+    <ion-skeleton-text animated style="width: 90%; height: 16px; margin-top: 8px"></ion-skeleton-text>
+  </ng-container>
+
+  <div>
+    <nz-skeleton [nzLoading]="false" [nzParagraph]="{ rows: 6 }">
+      <video
+        #videoEl
+        *ngIf="videoSrcSafe "
+        [src]="videoSrcSafe"
+        playsinline
+        controls
+        (loadedmetadata)="onLoadedMetadata()"
+        (timeupdate)="onTimeUpdate()"
+        (play)="isPlaying = true"
+        (pause)="isPlaying = false"
+        poster="/assets/img/video-poster.png"
+        class="w-full bg-black"
+      ></video>
+    </nz-skeleton>
+  </div>
+
+  <div class="flex flex-col gap-2 bg-white rounded shadow-2xl mt-2 px-3 py-2" *ngIf="!loading && pack">
+    <div *ngIf="isLocal" class="flex *:items-center gap-1">
+      <ion-icon name="phone-portrait-outline" class="text-lg" slot="start"></ion-icon>
+      <label>Video trên thiết bị</label>
+    </div>
+    <div *ngIf="!isLocal" class="flex *:items-center justify-between">
+      <div class="flex gap-1">
+        <ion-icon name="cloud-outline" slot="start"></ion-icon>
+        <label>Video trên server</label>
+      </div>
+      <div><ion-icon name="download-outline" class="text-2xl"></ion-icon></div>
+    </div>
+
+    <label class="flex w-full justify-between">
+      <span class="font-medium">Pack</span>
+      <span class="mono">#{{ pack.orderCode }}</span>
+    </label>
+
+    <label class="flex flex-col w-full">
+      <span class="font-medium">Thời gian</span>
+      <span>
+        {{ pack.startRecordDate | date:'yyyy-MM-dd HH:mm' }} → {{ pack.endRecordDate | date:'HH:mm' }} ({{ fmtDuration(pack.timeRecordedMs) }})
+      </span>
+    </label>
+
+    <label class="flex w-full justify-between" *ngIf="pack.videoFileSize">
+      <span class="font-medium"> Kích thước</span>
+      <span>{{ (pack.videoFileSize/1024/1024) | number:'1.0-1' }} MB</span>
+    </label>
+
+    <label class="flex flex-col w-full" *ngIf="pack.videoResolution || pack.videoFrameRate">
+      <span class="font-medium"> Thông số</span>
+      <span class="flex w-full justify-baseline">
+        <ng-container *ngIf="pack.videoResolution">{{ pack.videoResolution }}</ng-container>
+        <ng-container *ngIf="pack.videoFrameRate">&nbsp;@ {{ pack.videoFrameRate }}fps</ng-container>
+      </span>
+    </label>
+
+    <label class="w-full">
+      <span class="font-medium"> Thiết bị</span>
+      <div class="flex justify-between w-full items-stretch">
+        <span nz-typography class="flex items-center gap-1" *ngIf="pack.device && pack.device.modelDevice">
+          <ion-icon name="phone-portrait-outline"></ion-icon>
+          <span>{{pack.device.modelDevice}}</span>
+        </span>
+        <span nz-typography class="flex items-center gap-1" *ngIf="pack.device && pack.device.platform">
+          <ion-icon name="layers-outline"></ion-icon>
+          <div>
+            <span>{{pack.device.platform}}</span>
+            <span *ngIf="pack.device.osVersion">, {{pack.device.osVersion}}</span>
+          </div>
+        </span>
+      </div>
+    </label>
+
+    <div>
+      <button nz-button nzType="primary" nzBlock (click)="sharePack()" [disabled]="!videoSrcSafe || isSharing">
+        <ng-container *ngIf="!isSharing">Chia sẻ Pack</ng-container>
+        <ng-container *ngIf="isSharing">Đang chuẩn bị...</ng-container>
+      </button>
+    </div>
+  </div>
+</ion-content>

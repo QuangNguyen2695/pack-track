@@ -1,0 +1,128 @@
+<ion-header>
+  <ion-toolbar class="text-white">
+    <div class="bg-img-toolbar">
+      <div class="bg-toolbar">
+        <div class="px-3 py-2 content-toolbar flex items-center justify-between pt-2">
+          <div class="flex items-center">
+            <div class="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                />
+              </svg>
+            </div>
+            <div class="pl-2">
+              <div class="text-sm">Xin chào,</div>
+              <div class="font-medium">Quang</div>
+            </div>
+          </div>
+          <div class="flex items-center justify-center w-24">
+            <img src="assets/imgs/logo.png" alt="" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+<cdk-virtual-scroll-viewport itemSize="56" class="h-full">
+  <div class="packs-mobile">
+    <!-- Sticky Filter Bar -->
+    <div class="filter-bar">
+      <!-- Status tabs (ng-zorro segmented) -->
+      <nz-segmented [nzOptions]="statusTabs" [ngModel]="currentStatusStr" (ngModelChange)="onChangeStatus($event)" nzBlock> </nz-segmented>
+
+      <!-- Search + Date -->
+      <div class="row">
+        <input
+          nz-input
+          placeholder="Tìm kiếm (pack/order/ghi chú)"
+          [ngModel]="form.value.keyword"
+          (ngModelChange)="form.patchValue({ keyword: $event })"
+        />
+
+        <nz-range-picker class="date" [ngModel]="form.value.dateRange" (ngModelChange)="form.patchValue({ dateRange: $event })" nzFormat="YYYY-MM-DD">
+        </nz-range-picker>
+      </div>
+
+      <div class="row row-actions">
+        <nz-select class="sort" [ngModel]="sortOpt" (ngModelChange)="onChangeSort($event)" nzSize="small">
+          <nz-option nzValue="newest" nzLabel="Mới nhất"></nz-option>
+          <nz-option nzValue="oldest" nzLabel="Cũ nhất"></nz-option>
+          <nz-option nzValue="duration_desc" nzLabel="Thời lượng dài → ngắn"></nz-option>
+          <nz-option nzValue="duration_asc" nzLabel="Thời lượng ngắn → dài"></nz-option>
+        </nz-select>
+
+        <button nz-button nzType="default" nzSize="small" (click)="onClearFilters()"><span nz-icon nzType="reload"></span> Xoá lọc</button>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <ng-container *ngIf="loading">
+      <nz-skeleton *ngFor="let i of [1,2,3,4]" [nzActive]="true"></nz-skeleton>
+    </ng-container>
+
+    <!-- Empty state -->
+    <nz-empty *ngIf="!loading && searchPacks.packs.length === 0" nzNotFoundImage="simple" nzNotFoundContent="Không có pack nào"></nz-empty>
+
+    <!-- Card list -->
+    <div class="cards" *ngIf="!loading && searchPacks.packs.length">
+      <nz-card *ngFor="let r of searchPacks.packs" nzSize="small" class="card" (click)="openPackDetail(r)">
+        <div class="card-header">
+          <div class="title">
+            <small class="muted" *ngIf="r.orderCode">#{{ r.orderCode }}</small>
+          </div>
+          <div>
+            <span class="duration">{{ fmtDuration(r.timeRecordedMs) }}</span>
+          </div>
+        </div>
+
+        <div class="row">
+          <span nz-typography>
+            <ion-icon name="time-outline"></ion-icon>
+            {{ r.startRecordDate | date:'yyyy-MM-dd HH:mm' }} → {{ r.endRecordDate | date:'HH:mm' }}
+          </span>
+        </div>
+
+        <div class="row small muted">
+          <span nz-typography class="flex items-center gap-1">
+            <ion-icon name="server-outline" [ngClass]="{'pack-active':  ownerIdSet.has(r._id)}"></ion-icon>
+            <span [ngClass]="{'pack-active':  ownerIdSet.has(r._id)}">{{ r.videoStorage || 'local' }}</span>
+          </span>
+          <span nz-typography class="flex items-center gap-1" *ngIf="r.videoFileSize">
+            <span>{{ (r.videoFileSize/1024/1024) | number:'1.0-1' }} MB</span>
+          </span>
+          <span nz-typography class="flex items-center gap-1" *ngIf="r.device && r.device.modelDevice">
+            <ion-icon name="phone-portrait-outline"></ion-icon>
+            <span>{{r.device.modelDevice}}</span>
+          </span>
+          <span nz-typography class="flex items-center gap-1" *ngIf="r.device && r.device.platform">
+            <ion-icon name="layers-outline"></ion-icon>
+            <div>
+              <span>{{r.device.platform}}</span>
+              <span *ngIf="r.device.osVersion">, {{r.device.osVersion}}</span>
+            </div>
+          </span>
+        </div>
+
+        <!-- (tuỳ chọn) hành động -->
+        <!-- <div class="row actions">
+        <button nz-button nzSize="small" nzType="link">Xem</button>
+      </div> -->
+      </nz-card>
+    </div>
+
+    <!-- Load more -->
+    <div class="load-more" *ngIf="!loading && searchPacks.packs.length && !reachedEnd">
+      <button nz-button nzType="default" (click)="loadMore()" [disabled]="loadingMore">
+        <span *ngIf="!loadingMore">Tải thêm</span>
+        <span *ngIf="loadingMore"><span nz-icon nzType="loading"></span> Đang tải…</span>
+      </button>
+    </div>
+
+    <div class="end" *ngIf="!loading && searchPacks.packs.length && reachedEnd">
+      <span>Đã hết</span>
+    </div>
+  </div>
+</cdk-virtual-scroll-viewport>

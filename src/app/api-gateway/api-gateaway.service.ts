@@ -23,15 +23,10 @@ export class ApiGatewayService {
     let headers = new HttpHeaders();
     let context = new HttpContext().set(SkipLoading, skipLoading);
 
-    headers = headers.set('Access-Control-Allow-Origin', '*');
-    headers = headers.set(
-      'Access-Control-Allow-Methods',
-      'GET,POST,OPTIONS,DELETE,PUT'
-    );
-    headers = headers.set(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, x-client-key, x-client-token, x-client-secret, Authorization'
-    );
+    // Do not set CORS response headers on client requests.
+    // Servers must send Access-Control-Allow-* headers. Setting them here can break preflight.
+    // Keep minimal, safe defaults; Angular will set Content-Type for JSON bodies automatically.
+    headers = headers.set('Accept', 'application/json');
 
     return { headers, context };
   }

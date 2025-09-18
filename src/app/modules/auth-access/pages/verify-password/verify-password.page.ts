@@ -42,7 +42,7 @@ export class VerifyPasswordPage implements OnInit {
 
   initForm() {
     this.verifyPasswordForm = this.fb.group({
-      password: ["password123", [Validators.required]],
+      password: ["@Solid2023", [Validators.required]],
     });
   }
 

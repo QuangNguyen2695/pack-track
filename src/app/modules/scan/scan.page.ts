@@ -17,6 +17,11 @@ import { BarcodeScannerService } from "./services/barcode-scanner.service";
 import { MediaSaveService } from "./services/media-save.service";
 import { SoundService } from "@rsApp/shared/services/sound-service/sound-service";
 import { LoadingService } from "@rsApp/shared/services/loadding-service/loading.service";
+import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
+import { DeviceInfoService } from "@rsApp/shared/services/device/device-info.service";
+import { PackService } from "@rsApp/shared/services/pack-service/pack.service";
+import { Filesystem } from "@capacitor/filesystem";
+import { Capacitor } from "@capacitor/core";
 
 type RecState = "idle" | "previewing" | "starting" | "recording" | "stopping";
 
@@ -69,6 +74,10 @@ export class ScanPage implements OnInit, AfterViewInit {
   // Serial queue
   private serialQueue: Promise<void> = Promise.resolve();
 
+  private tempRecording = false; // đang quay tạm?
+  private tempRecStartedAt = 0; // thời điểm bắt đầu quay tạm (để xoay vòng)
+  private readonly TEMP_ROTATE_MS = 30_000; // (khuyến nghị) đảo file tạm mỗi 30s tránh file quá lớn
+
   constructor(
     private platform: Platform,
     private ngZone: NgZone,
@@ -80,6 +89,9 @@ export class ScanPage implements OnInit, AfterViewInit {
     private scanner: BarcodeScannerService,
     private mediaSaver: MediaSaveService,
     private loadingService: LoadingService,
+    private deviceInfo: DeviceInfoService,
+    private packService: PackService,
+    private credentialService: CredentialService,
   ) {}
 
   async ngOnInit() {
@@ -107,6 +119,9 @@ export class ScanPage implements OnInit, AfterViewInit {
 
   async ionViewWillLeave() {
     this.stopScanLoop();
+
+    // ⭐ NEW: tắt quay tạm nếu đang bật
+    await this.stopTempRecording().catch(() => {});
     await this.cam.stop();
     this.stopCounter();
     this.recording = false;
@@ -116,7 +131,12 @@ export class ScanPage implements OnInit, AfterViewInit {
 
   private async requestCameraPermission() {
     try {
-      await Camera.requestPermissions();
+      // const perms = await CameraPreview.checkPermissions();
+      // if (perms.camera !== "granted") {
+      //   await CameraPreview.requestPermissions(); // xin đúng plugin
+      // }
+      // Nếu bạn thực sự cần thu âm khi quay VIDEO (không khuyến nghị cho 15):
+      // if (perms.microphone !== 'granted') await CameraPreview.requestPermissions();
     } catch {}
   }
 
@@ -126,15 +146,24 @@ export class ScanPage implements OnInit, AfterViewInit {
     this.scanLoopTimer = setInterval(async () => {
       if (this.scanningPaused || this.recState === "stopping" || this.recState === "starting") return;
       try {
+        // ⭐ NEW: nếu đang quay thật hoặc quay tạm → dùng file-based frame
+        const useFileFrames = this.recState === "recording" || this.tempRecording;
+
+        // (tuỳ chọn) xoay vòng file quay tạm để tránh phình to
+        if (useFileFrames && this.recState !== "recording") {
+          await this.maybeRotateTempRecording().catch(() => {});
+        }
+
         const samples: string[] = [];
-        const isRecording = this.recState === "recording";
-        for (let i = 0; i < (isRecording ? 2 : 3); i++) {
-          if (i) await this.sleep(isRecording ? 60 : 40);
+        const loopCount = useFileFrames ? 2 : 3;
+
+        for (let i = 0; i < loopCount; i++) {
+          if (i) await this.sleep(useFileFrames ? 60 : 40);
 
           let dataUrl: string | null = null;
 
-          if (isRecording) {
-            // GHI: chụp ra FILE → đọc base64 → xoá file
+          if (useFileFrames) {
+            // 🟢 giống nhánh recording cũ
             const filePath = await this.cam.captureToFile(82);
             if (filePath) {
               const base64 = await this.cam.pathToBase64Any(filePath);
@@ -142,7 +171,7 @@ export class ScanPage implements OnInit, AfterViewInit {
               if (base64) dataUrl = `data:image/jpeg;base64,${base64}`;
             }
           } else {
-            // PREVIEW: dùng sample (nhanh)
+            // 🔵 fallback khi không quay tạm
             const base64 = await this.cam.captureSampleBase64(88);
             if (base64) dataUrl = `data:image/jpeg;base64,${base64}`;
           }
@@ -154,23 +183,19 @@ export class ScanPage implements OnInit, AfterViewInit {
         const scored = await Promise.all(samples.map(async (d) => [await this.cam.sharpnessScore(d), d] as [number, string]));
         scored.sort((a, b) => b[0] - a[0]);
         const bestDataUrl = scored[0][1];
-        // const base64 = bestDataUrl.split(",")[1];
         if (!bestDataUrl) return;
 
         const luma = await this.cam.avgLuma(bestDataUrl);
         if (luma < 40 && !this.torchEnabled) {
-          // ngưỡng 30–50 tuỳ môi trường
           try {
             await this.toggleTorch();
           } catch {}
         }
-        // const dataUrl = `data:image/jpeg;base64,${base64}`;
-        this.frameCount = (this.frameCount + 1) % 3;
 
+        this.frameCount = (this.frameCount + 1) % 3;
         const result: Result | null =
-          this.frameCount === 0
-            ? await this.scanner.decodeRobust(bestDataUrl) // nặng, thưa
-            : await this.scanner.decodeFast(bestDataUrl); // nhanh, thường xuyên
+          this.frameCount === 0 ? await this.scanner.decodeRobust(bestDataUrl) : await this.scanner.decodeFast(bestDataUrl);
+
         if (!result) return;
 
         const code = result.getText()?.trim();
@@ -220,7 +245,8 @@ export class ScanPage implements OnInit, AfterViewInit {
           } catch {}
 
           // Dừng & lưu clip hiện tại
-          await this.stopInlineRecordingAndSave();
+          const savedPath = await this.stopInlineRecordingAndSave();
+          await this.persistPack(savedPath);
 
           try {
             await this.soundService.playAndWait(this.successVoice);
@@ -247,6 +273,38 @@ export class ScanPage implements OnInit, AfterViewInit {
     });
   }
 
+  private async startTempRecording() {
+    if (this.tempRecording || this.recState === "recording" || this.recState === "starting") return;
+    try {
+      await this.cam.startRecord(); // quay tạm (không lưu)
+      this.tempRecording = true;
+      this.tempRecStartedAt = Date.now();
+    } catch (e) {
+      this.tempRecording = false;
+    }
+  }
+
+  private async stopTempRecording() {
+    if (!this.tempRecording) return;
+    try {
+      // Dừng quay tạm nhưng KHÔNG lưu file (bỏ kết quả)
+      await this.cam.stopRecord(/* discard: true nếu plugin hỗ trợ, còn không thì: */);
+      this.tempRecording = false;
+    } catch {
+      this.tempRecording = false;
+    }
+  }
+
+  private async maybeRotateTempRecording() {
+    if (!this.tempRecording) return;
+    if (Date.now() - this.tempRecStartedAt < this.TEMP_ROTATE_MS) return;
+    try {
+      await this.cam.stopRecord();
+      await this.cam.startRecord();
+      this.tempRecStartedAt = Date.now();
+    } catch {}
+  }
+
   // ====== Record flow ======
   private async startInlinePreview() {
     const dpr = window.devicePixelRatio || 1;
@@ -257,11 +315,15 @@ export class ScanPage implements OnInit, AfterViewInit {
       width: window.innerWidth,
       height: window.innerHeight,
       toBack: true,
-      storeToFile: true, // << BẬT
+      storeToFile: true, // ⚠️ phải bật để captureToFile hoạt động
       disableAudio: false,
     };
     await this.cam.start(opts);
     await this.cam.trySetContinuousFocus?.();
+
+    // ⭐ NEW: ngay khi vào preview, bật quay tạm để feed file-based frames cho detector
+    await this.startTempRecording();
+
     document.body.classList.add("camera-preview-active");
     this.recState = "previewing";
     this.resumeScanLoop();
@@ -275,8 +337,14 @@ export class ScanPage implements OnInit, AfterViewInit {
     try {
       await this.sleep(220);
       await this.cam.trySetContinuousFocus?.();
-      // không pause scan để vừa quay vừa quét
-      await this.cam.startRecord();
+
+      // ⭐ NEW: nếu đang quay tạm thì dừng trước khi quay thật
+      if (this.tempRecording) {
+        await this.stopTempRecording();
+        await this.sleep(120); // cho encoder “nhả” resource 1 nhịp
+      }
+
+      await this.cam.startRecord(); // quay thật
 
       await this.sleep(260);
       this.recording = true;
@@ -285,6 +353,12 @@ export class ScanPage implements OnInit, AfterViewInit {
     } catch (e) {
       this.recording = false;
       this.recState = "previewing";
+
+      // Nếu quay thật fail, cố gắng bật lại quay tạm để detector không “mù”
+      if (!this.tempRecording) {
+        await this.startTempRecording().catch(() => {});
+      }
+
       this.resumeScanLoop();
       this.loadingService.loadingOff();
     }
@@ -343,7 +417,11 @@ export class ScanPage implements OnInit, AfterViewInit {
       this.video.name = this.video.orderCode;
 
       await this.soundService.playAndWait(this.savingOrderVoice);
-      await this.stopInlineRecordingAndSave();
+      const savedPath = await this.stopInlineRecordingAndSave();
+
+      // 👉 LƯU PACK LÊN API
+      await this.persistPack(savedPath);
+
       await this.soundService.playAndWait(this.successVoice);
       this.resumeScanLoop();
       this.loadingService.loadingOff();
@@ -406,5 +484,69 @@ export class ScanPage implements OnInit, AfterViewInit {
   getPolygonPoints(): string {
     if (!this.cornerPoints || this.cornerPoints.length !== 4) return "";
     return this.cornerPoints.map((p) => `${p[0]},${p[1]}`).join(" ");
+  }
+
+  private async persistPack(savedPath: string | undefined) {
+    try {
+      const videoPath = savedPath || undefined;
+      const currentUser: any = await this.credentialService.getCurrentUser();
+      const userId = currentUser?._id;
+      const dev = await this.deviceInfo.getDeviceInfo();
+
+      const start = this.video.startTime ?? new Date();
+      const end = this.video.endTime ?? new Date();
+      const durationMs = Math.max(0, end.getTime() - start.getTime());
+
+      const fileName = this.video?.name ? `${this.video.name}.mp4` : undefined;
+      const videoMime = "video/mp4";
+
+      // 👉 lấy size (bytes)
+      const videoSize = videoPath ? await this.getFileSizeBytes(videoPath) : undefined;
+
+      const nowIso = new Date().toISOString();
+
+      const payload = {
+        userId,
+        deviceId: dev.deviceId,
+        packNumber: this.video?.orderCode || this.video?.name || "UNKNOWN",
+        orderCode: this.video?.orderCode || undefined,
+        createDate: nowIso,
+        startRecordDate: start.toISOString(),
+        endRecordDate: end.toISOString(),
+        timeRecordedMs: durationMs,
+        status: "recorded" as const,
+        videoStorage: videoPath ? ("local" as const) : undefined,
+        videoStorageKey: videoPath,
+        videoFileName: fileName,
+        videoFileSize: videoSize, // 👈 đã có size (bytes)
+        videoMimeType: videoMime,
+        // videoResolution / videoFrameRate có thể bổ sung sau
+        appVersion: dev.appVersion,
+        notes: undefined,
+      };
+
+      this.packService.create(payload).subscribe(() => {});
+    } catch {}
+  }
+
+  private async getFileSizeBytes(path: string): Promise<number | undefined> {
+    // 1) Thử stat trực tiếp
+    try {
+      const info: any = await Filesystem.stat({ path });
+      // Capacitor v5/v6: info.size là number (bytes)
+      if (typeof info?.size === "number" && !isNaN(info.size)) {
+        return info.size;
+      }
+    } catch {}
+
+    // 2) Fallback: fetch blob từ webview-local server
+    try {
+      const url = Capacitor.convertFileSrc(path);
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return blob.size;
+    } catch {}
+
+    return undefined;
   }
 }

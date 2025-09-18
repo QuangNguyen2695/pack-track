@@ -25,3 +25,9 @@ ionic capacitor run android -l --external
 node version 22.13.0
 angular version 19.1.1
 npm version 11.1.0
+
+
+ionic build
+npx cap sync
+npx cap copy
+ionic capacitor run android -l --external

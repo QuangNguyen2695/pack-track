@@ -1,0 +1,88 @@
+.packs-mobile {
+  padding: 12px 12px 64px; // bottom space cho nút load more
+
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #fff;
+    padding: 8px 8px 12px;
+    border-bottom: 1px solid #f0f0f0;
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+
+      &.row-actions {
+        justify-content: space-between;
+        align-items: center;
+        .sort {
+          min-width: 180px;
+        }
+      }
+
+      input[nz-input] {
+        flex: 1;
+      }
+      .date {
+        flex: 1;
+      }
+    }
+  }
+
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-top: 12px;
+
+    .card {
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+
+        .title {
+          display: flex;
+          align-items: baseline;
+          gap: 6px;
+        }
+      }
+
+      .pack-active {
+        color: #52c41a;
+      }
+
+      .row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 4px 0;
+
+        &.small {
+          font-size: 12px;
+        }
+      }
+
+      .muted {
+        color: #8c8c8c;
+      }
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .duration {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .load-more,
+  .end {
+    display: flex;
+    justify-content: center;
+    margin: 12px 0 24px;
+    color: #8c8c8c;
+  }
+}
