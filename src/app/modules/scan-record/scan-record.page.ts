@@ -84,16 +84,18 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     // lắng nghe barcode
     CameraBarcode.addListener("barcode", async (e) => {
       const code = e.value;
+      console.log("🚀 ~ ScanRecordPage ~ ionViewWillEnter ~ code:", code);
       if (!this.recording) {
         // bắt đầu ghi khi thấy mã đầu tiên
-        // await CameraBarcode.startRecording({ fileNamePrefix: code, quality: 'sd' });
+        await CameraBarcode.startRecording({ fileNamePrefix: code, quality: "sd" });
         this.recording = true;
         this.currentCode = code;
       } else if (this.currentCode !== code) {
         // cắt clip khi thấy mã mới
         const { uri } = await CameraBarcode.stopRecording();
+        console.log("🚀 ~ ScanRecordPage ~ ionViewWillEnter ~ uriuriuriuriuriuriuriuriuriuriuriuriuriuriuriuri:", uri)
         // TODO: phát âm thanh + log/ghi server
-        // await CameraBarcode.startRecording({ fileNamePrefix: code, quality: 'sd' });
+        const result = await CameraBarcode.startRecording({ fileNamePrefix: code, quality: "sd" });
         this.currentCode = code;
       }
     });

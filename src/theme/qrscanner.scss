@@ -32,3 +32,18 @@
 .camera-preview-active .scanner-hide {
   visibility: hidden;
 }
+
+// Ensure the entire UI is transparent when camera preview is sent to back
+body.camera-preview-active,
+html.camera-preview-active {
+  background: transparent !important;
+}
+
+body.camera-preview-active ion-app,
+body.camera-preview-active ion-content,
+body.camera-preview-active .ion-page {
+  --ion-background-color: transparent !important;
+  --background: transparent !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
