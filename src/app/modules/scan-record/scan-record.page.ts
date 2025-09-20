@@ -63,6 +63,15 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private barcodeBusy = false;
   private barcodeCooldownUntil = 0;
 
+  // --- Auto save khi mất mã hiện tại ---
+  private readonly INACTIVITY_MS = 5000; // 5 giây
+  private lastSeenCurrentAt = 0;
+  private inactivityTimerId: any = null;
+  private autoSaveBusy = false;
+
+  // Cờ bật/tắt tính năng auto-save 5s
+  autoSaveEnabled = false;
+
   // Metadata video hiện tại
   video: VideoMeta | null = null;
 
@@ -79,13 +88,20 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     private alertCtl: AlertController,
   ) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    // Khôi phục cấu hình autoSave từ localStorage
+    try {
+      const saved = localStorage.getItem("autoSaveEnabled");
+      if (saved !== null) this.autoSaveEnabled = saved === "1";
+    } catch {}
+  }
 
   async ngOnDestroy(): Promise<void> {
     await CameraBarcode.removeAllListeners().catch(() => {});
     try {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
     } catch {}
+    this.stopInactivityWatch();
     document.body.classList.remove("camera-preview-active", "qrscanner");
     this.stopCounter();
   }
@@ -95,6 +111,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     try {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
     } catch {}
+    this.stopInactivityWatch();
     document.body.classList.remove("qrscanner", "camera-preview-active");
     this.stopCounter();
     this.recording = false;
@@ -131,6 +148,11 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private async handleBarcodeEvent(code: string | null, now: number) {
     if (!code) return;
 
+    // nếu vẫn là mã hiện tại và cờ bật → cập nhật last seen để tránh autosave
+    if (this.autoSaveEnabled && code === this.currentCode) {
+      this.lastSeenCurrentAt = now;
+    }
+
     // Chặn khi đang xử lý/đang chuyển trạng thái/đang cooldown
     if (this.barcodeBusy) return;
     if (now < this.barcodeCooldownUntil) return;
@@ -146,18 +168,11 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       this.barcodeBusy = true;
 
       if (!this.recording) {
-        // LẦN ĐẦU: phát start → bắt đầu quay theo mã
+        // LẦN ĐẦU: phát start (song song) → bắt đầu quay theo mã
         this.loading.loadingOn();
-
-        // Phát voice song song, KHÔNG await ngay
-        const voiceP = this.safePlay(this.newOrderVoice);
-
-        // Bắt đầu quay (đang hiển thị loading)
+        const voiceP = this.safePlay(this.newOrderVoice); // fire-and-forget
         await this.startRecordingForCode(code);
-
-        // (tuỳ chọn) chờ voice hoàn tất, nhưng không để chặn flow
         await voiceP.catch(() => {});
-
         this.loading.loadingOff();
         this.barcodeCooldownUntil = now + 1000;
         return;
@@ -176,29 +191,29 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   private async saveCurrentOrderAndStartNext(nextCode: string | null, now = Date.now()) {
-    // Nếu không có clip đang quay thì bỏ
     if (this.recState !== "recording") return;
 
     this.loading.loadingOn();
     this.stopCounter();
 
-    // Voice giống trang cũ
-    await this.safePlay(this.detectNewOrderVoice);
-    await this.safePlay(this.savingOrderVoice);
+    // 1) Phát "new order" NGAY và KHÔNG chờ (song song với các thao tác khác)
+    this.safePlay(this.newOrderVoice).catch(() => {});
 
-    // Dừng & lấy file, cập nhật metadata (endRecordDate/timeRecordedMs)
+    // 2) Dừng clip hiện tại để lấy file (bắt buộc phải await)
     const savedUri = await this.stopRecordingAndGetPath();
 
-    // Gửi API
-    await this.persistPack(savedUri).catch(() => {});
+    // 3) Bắt đầu SAVE ở HẬU CẢNH (không chờ) + voice "saving" → "success"
+    (async () => {
+      this.savingInProgress = true;
+      try {
+        await this.persistPack(savedUri).catch(() => {});
+      } finally {
+        this.savingInProgress = false;
+      }
+    })().catch(() => {});
 
-    // Voice thành công
-    await this.safePlay(this.successVoice);
-
-    // Cho encoder nhả tài nguyên
-    await this.sleep(350);
-
-    // Nếu có mã tiếp theo → bắt đầu quay mã mới
+    // 4) (tuỳ chọn) nghỉ rất ngắn cho encoder nhả resource rồi QUAY LẠI NGAY với mã mới
+    await this.sleep(120);
     if (nextCode) {
       await this.startRecordingForCode(nextCode);
       this.barcodeCooldownUntil = now + 1000;
@@ -224,10 +239,14 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     // Khởi tạo metadata video NGAY LÚC BẮT ĐẦU QUAY
     this.video = {
       orderCode: code,
-      startRecordDate: new Date(), // ✅ start ngay khi chuẩn bị quay
+      startRecordDate: new Date(), // ✅ set ngay khi chuẩn bị quay
       videoMimeType: "video/mp4",
       videoFileName: `${code}.mp4`,
     };
+    // reset/khởi động watchdog 5s (chỉ khi cờ bật)
+    this.lastSeenCurrentAt = Date.now();
+    if (this.autoSaveEnabled) this.startInactivityWatch();
+
     this.resetCounter(); // reset timer theo clip mới
 
     try {
@@ -244,6 +263,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       this.currentCode = null;
       this.recState = "previewing";
       this.video = null;
+      this.stopInactivityWatch();
       throw e;
     }
   }
@@ -251,11 +271,11 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private async stopRecordingAndGetPath(): Promise<string | undefined> {
     if (!this.recording || this.recState !== "recording") return;
     this.recState = "stopping";
+    this.stopInactivityWatch();
     try {
       const stopAt = new Date();
       const { uri } = await CameraBarcode.stopRecording();
 
-      // cập nhật metadata video
       if (this.video) {
         this.video.endRecordDate = stopAt;
         const start = this.video.startRecordDate ?? stopAt;
@@ -284,7 +304,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     try {
       if (this.recState === "recording") {
         this.stopCounter();
-        await this.safePlay(this.savingOrderVoice);
         const savedUri = await this.stopRecordingAndGetPath();
         await this.persistPack(savedUri).catch(() => {});
         await this.safePlay(this.successVoice);
@@ -303,19 +322,36 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     } catch {}
   }
 
+  // Cho phép bật/tắt tính năng autosave 5s và lưu vào localStorage
+  setAutoSaveEnabled(v: boolean) {
+    this.autoSaveEnabled = v;
+    try {
+      localStorage.setItem("autoSaveEnabled", v ? "1" : "0");
+    } catch {}
+
+    if (!v) {
+      // Tắt watchdog ngay nếu đang bật
+      this.stopInactivityWatch();
+    } else {
+      // Bật watchdog ngay nếu đang quay
+      if (this.recState === "recording") {
+        this.lastSeenCurrentAt = Date.now();
+        this.startInactivityWatch();
+      }
+    }
+  }
+
   // =================== TIMER (đã sửa để UI luôn cập nhật) ===================
   private startCounter(reset = false) {
     if (reset) this.resetCounter();
     this.stopCounter();
 
-    // Chạy ngoài Angular để mượt hơn
     this.zone.runOutsideAngular(() => {
       this.timerId = setInterval(() => {
-        // Quay lại Angular để cập nhật UI
         this.zone.run(() => {
           this.duration++;
           this.durationTimeFormat = this.formatDuration(this.duration);
-          this.cdr.markForCheck(); // ép change detection (đặc biệt khi dùng OnPush hay tác vụ native)
+          this.cdr.markForCheck();
         });
       }, 1000);
     });
@@ -323,7 +359,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
   private resetCounter() {
     this.stopCounter();
-    // Đảm bảo cập nhật ngay lập tức ra UI
     this.duration = 0;
     this.durationTimeFormat = this.formatDuration(this.duration);
     this.cdr.markForCheck();
@@ -344,6 +379,56 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
   private pad(v: number) {
     return v < 10 ? `0${v}` : `${v}`;
+  }
+
+  // =================== INACTIVITY WATCH (5s không thấy mã -> auto save) ===================
+  private startInactivityWatch() {
+    if (!this.autoSaveEnabled) return; // cờ tắt thì không bật timer
+    this.stopInactivityWatch();
+    this.zone.runOutsideAngular(() => {
+      this.inactivityTimerId = setInterval(async () => {
+        if (this.recState !== "recording" || !this.currentCode) return;
+        if (this.autoSaveBusy || this.savingInProgress) return;
+
+        const now = Date.now();
+        if (now - this.lastSeenCurrentAt >= this.INACTIVITY_MS) {
+          this.autoSaveBusy = true;
+          this.barcodeBusy = true; // khoá event barcode trong lúc autosave
+          try {
+            await this.autoSaveCurrentOrder();
+            this.barcodeCooldownUntil = Date.now() + 1000;
+          } finally {
+            this.barcodeBusy = false;
+            this.autoSaveBusy = false;
+          }
+        }
+      }, 1000);
+    });
+  }
+
+  private stopInactivityWatch() {
+    if (this.inactivityTimerId) {
+      clearInterval(this.inactivityTimerId);
+      this.inactivityTimerId = null;
+    }
+  }
+
+  /** Lưu đơn hàng hiện tại, không bắt đầu quay lại (giống save manually) */
+  private async autoSaveCurrentOrder() {
+    if (this.recState !== "recording") return;
+
+    this.loading.loadingOn();
+    this.stopCounter();
+
+    try {
+      await this.safePlay(this.savingOrderVoice);
+      const savedUri = await this.stopRecordingAndGetPath(); // đã stop & cập nhật this.video
+      await this.persistPack(savedUri).catch(() => {});
+      await this.safePlay(this.successVoice);
+    } finally {
+      this.resetCounter();
+      this.loading.loadingOff();
+    }
   }
 
   // =================== PACK PERSIST ===================
