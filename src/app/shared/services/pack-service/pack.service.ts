@@ -13,9 +13,9 @@ export class PackService {
   constructor(private api: ApiGatewayService) {}
 
   /** Tạo record sau khi quay xong */
-  create(payload: PackCreatePayload) {
+  create(payload: PackCreatePayload, skipLoading = false) {
     const url = `${this.baseUrl}`;
-    return this.api.post(url, payload).pipe(
+    return this.api.post(url, payload, skipLoading).pipe(
       map((res: any) => res?.data as PackDoc),
       catchError((error) => of(error?.error ?? null)),
     );
@@ -97,6 +97,9 @@ export class PackService {
       filters: searchParams.filters,
     };
 
-    return this.api.post(url, body, true).pipe(tap((res: any) => {}));
+    return this.api.post(url, body, true).pipe(
+      tap((res: any) => {}),
+      catchError((error) => of([])),
+    );
   }
 }

@@ -27,5 +27,29 @@
   </ion-toolbar>
 </ion-header>
 <ion-content>
-  
+  <div class="p-4">
+    <div class="mb-4">
+      <h2 class="text-xl font-bold mb-2">Test Video Cache</h2>
+      <p class="text-gray-600 text-sm mb-4">Click button để thêm fake video vào cache và test sync widget</p>
+      
+      <ion-button 
+        expand="block" 
+        color="primary" 
+        (click)="addTestVideoToCache()"
+        class="mb-4">
+        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+        Thêm Test Video vào Cache
+      </ion-button>
+    </div>
+    
+    <div class="bg-gray-100 rounded-lg p-4">
+      <h3 class="font-semibold mb-2">Hướng dẫn test:</h3>
+      <ul class="text-sm text-gray-700 space-y-1">
+        <li>1. Click button để thêm fake video vào cache</li>
+        <li>2. Sync widget sẽ xuất hiện ở góc phải màn hình</li>
+        <li>3. Test minimize/expand animation</li>
+        <li>4. Widget sẽ tự động sync video (có thể fail do fake data)</li>
+      </ul>
+    </div>
+  </div>
 </ion-content>

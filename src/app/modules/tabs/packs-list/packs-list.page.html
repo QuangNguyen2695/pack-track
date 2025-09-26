@@ -42,8 +42,13 @@
           (ngModelChange)="form.patchValue({ keyword: $event })"
         />
 
-        <nz-range-picker class="date" [ngModel]="form.value.dateRange" (ngModelChange)="form.patchValue({ dateRange: $event })" nzFormat="YYYY-MM-DD">
-        </nz-range-picker>
+        <nz-date-picker 
+          class="date" 
+          [ngModel]="form.value.date" 
+          (ngModelChange)="form.patchValue({ date: $event })" 
+          nzFormat="yyyy-MM-dd"
+          nzPlaceHolder="Chọn ngày">
+        </nz-date-picker>
       </div>
 
       <div class="row row-actions">

@@ -1,0 +1,92 @@
+// Animation keyframes and related styling
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Bounce in animation như iPhone AssistiveTouch
+@keyframes bounceIn {
+  0% {
+    transform: scale(0.3) rotate(-3deg);
+    opacity: 0;
+  }
+  20% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 0.8;
+  }
+  40% {
+    transform: scale(0.95) rotate(-0.5deg);
+    opacity: 0.9;
+  }
+  60% {
+    transform: scale(1.02) rotate(0.2deg);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.98) rotate(-0.1deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+// Bounce out animation
+@keyframes bounceOut {
+  0% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  20% {
+    transform: scale(1.05) rotate(1deg);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.3) rotate(-3deg);
+    opacity: 0;
+  }
+}
+
+// Pulse effect cho minimized state
+@keyframes gentlePulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    transform: scale(0.82);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  }
+}
+
+// Apply animation classes
+.sync-widget {
+  // Animation khi expand
+  &:not(.minimized) {
+    animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  // Gentle pulse khi minimized
+  &.minimized {
+    animation: gentlePulse 3s ease-in-out infinite;
+
+    // Stop pulsing khi hover
+    &:hover {
+      animation: none;
+    }
+  }
+}
+
+// Spinning animation for sync icon
+.sync-header {
+  ion-icon {
+    &.spinning {
+      animation: spin 1s linear infinite;
+    }
+  }
+}

@@ -4,37 +4,95 @@
       <ion-buttons slot="start" class="relative">
         <ion-back-button defaultHref="tabs/home" text="" icon="chevron-back-outline" color="white"></ion-back-button>
       </ion-buttons>
-      <ion-title class="font-medium">Quét mã</ion-title>
+      <ion-title class="font-medium">Quét mã barcode</ion-title>
+      <!-- <ion-buttons slot="end">
+        <ion-button (click)="exportScannedItems()" [disabled]="totalScanned === 0">
+          <ion-icon name="share-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons> -->
     </div>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <div class="flex w-full items-center justify-center flex-col">
-    @if (recording) {
-    <p class="text-white font-medium">: #{{ video.orderCode }}</p>
-    <p class="text-white font-medium">Đang quay: {{ durationTimeFormat }}</p>
-    <button nz-button (click)="saveVideo()">Lưu đơn hàng</button>
-    }
-  </div>
-
-  <!-- overlay khung scan -->
+  <!-- Camera Preview Background -->
   <div class="scan-container" #scannerFrame>
     <div class="scanner-frame"></div>
   </div>
 
-  <!-- cụm nút dưới -->
-  <div class="scan-btns">
-    <button expand="full" (click)="toggleTorch()">
-      <div *ngIf="!torchEnabled">
-        <ion-icon src="assets/icons/flashlight-off.svg" class="text-2xl"></ion-icon>
-        <label class="block text-sm text-white">Bật đèn pin</label>
-        <!-- đổi label cho đúng trạng thái -->
+  <!-- Info overlay -->
+  <div class="info-overlay">
+    <div class="info-text">{{ infoText }}</div>
+
+    <!-- Scan stats -->
+    <div class="scan-stats" *ngIf="scanning">
+      <div class="stat-item">
+        <span class="count">{{ totalScanned }}</span>
+        <span class="label">Đã quét</span>
       </div>
-      <div *ngIf="torchEnabled">
-        <ion-icon src="assets/icons/flashlight-on.svg" class="text-2xl"></ion-icon>
-        <label class="block text-sm text-white">Tắt đèn pin</label>
+      <div class="stat-item">
+        <span class="count">{{ uniqueScanned }}</span>
+        <span class="label">Duy nhất</span>
       </div>
-    </button>
+    </div>
+  </div>
+
+  <!-- Control buttons -->
+  <div class="control-panel">
+    <!-- Configuration toggles -->
+    <div class="config-row">
+      <ion-button fill="outline" size="small" [color]="allowDuplicates ? 'success' : 'medium'" (click)="toggleAllowDuplicates()">
+        <ion-icon name="copy-outline" slot="start"></ion-icon>
+        {{ allowDuplicates ? 'Cho phép trùng' : 'Chặn trùng' }}
+      </ion-button>
+
+      <ion-button fill="outline" size="small" [color]="allowSingleBarcode ? 'warning' : 'medium'" (click)="toggleSingleBarcodeMode()">
+        <ion-icon [name]="allowSingleBarcode ? 'stop-circle-outline' : 'infinite-outline'" slot="start"></ion-icon>
+        {{ allowSingleBarcode ? '1 mã' : 'Nhiều mã' }}
+      </ion-button>
+    </div>
+
+    <!-- Main action buttons -->
+    <div class="action-row">
+      <ion-button expand="block" fill="outline" color="light" (click)="toggleTorch()">
+        <ion-icon [name]="torchOn ? 'flashlight' : 'flashlight-outline'" slot="start"></ion-icon>
+        {{ torchOn ? 'Tắt đèn pin' : 'Bật đèn pin' }}
+      </ion-button>
+
+      <ion-button expand="block" color="danger" fill="outline" (click)="confirmClearAll()" [disabled]="totalScanned === 0">
+        <ion-icon name="trash-outline" slot="start"></ion-icon>
+        Xóa tất cả
+      </ion-button>
+    </div>
+  </div>
+
+  <!-- Scanned items list -->
+  <div class="scanned-list" *ngIf="totalScanned > 0">
+    <div class="list-header">
+      <h3>Danh sách mã đã quét ({{ totalScanned }})</h3>
+    </div>
+
+    <div class="items-container">
+      <div class="scanned-item" *ngFor="let item of scannedItems; let i = index" [class.latest]="i === 0">
+        <div class="item-content">
+          <div class="barcode-text">{{ item.barcode }}</div>
+          <div class="item-meta">
+            <span class="format">{{ item.format }}</span>
+            <span class="timestamp">{{ formatTimestamp(item.timestamp) }}</span>
+          </div>
+        </div>
+
+        <ion-button fill="clear" color="danger" size="small" (click)="removeItem(i)">
+          <ion-icon name="close-outline"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty state -->
+  <div class="empty-state" *ngIf="totalScanned === 0 && scanning">
+    <ion-icon name="qr-code-outline" class="empty-icon"></ion-icon>
+    <h3>Chưa có mã nào được quét</h3>
+    <p>Hướng camera về phía barcode/QR code để bắt đầu quét</p>
   </div>
 </ion-content>

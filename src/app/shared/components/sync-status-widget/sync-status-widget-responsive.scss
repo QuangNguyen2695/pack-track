@@ -1,0 +1,55 @@
+// Responsive styles and utility classes
+
+// Responsive cho tablet/desktop
+@media (min-width: 768px) {
+  .sync-widget {
+    top: 24px;
+    right: 24px;
+  }
+}
+
+// Responsive cho mobile nhỏ
+@media (max-width: 480px) {
+  .sync-widget {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    min-width: auto;
+    max-width: none;
+
+    &.minimized {
+      right: 16px;
+      left: auto;
+      width: 50px;
+    }
+  }
+}
+
+// Tailwind-like utility classes for transitions
+.transition-all {
+  transition: all 0.3s ease-in-out;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+.ease-in-out {
+  transition-timing-function: ease-in-out;
+}
+
+.max-h-0 {
+  max-height: 0;
+}
+
+.opacity-0 {
+  opacity: 0;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}

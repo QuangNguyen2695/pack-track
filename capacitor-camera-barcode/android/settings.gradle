@@ -5,9 +5,8 @@ pluginManagement {
     gradlePluginPortal()
   }
   plugins {
-    // Khai báo version plugin ở đây để module dưới có thể dùng
-    id("com.android.library") version "8.6.0"
-    id("org.jetbrains.kotlin.android") version "2.0.20"
+    id("com.android.library") version "8.6.0" apply false
+    id("org.jetbrains.kotlin.android") version "1.9.24" apply false
   }
 }
 

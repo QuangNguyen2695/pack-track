@@ -38,7 +38,8 @@
     </nz-skeleton>
   </div>
 
-  <div class="flex flex-col gap-2 bg-white rounded shadow-2xl mt-2 px-3 py-2" *ngIf="!loading && pack">
+  <div class="flex flex-col gap-2 bg-white rounded shadow-2xl mt-2 px-3 py-2
+  " *ngIf="!loading && pack">
     <div *ngIf="isLocal" class="flex *:items-center gap-1">
       <ion-icon name="phone-portrait-outline" class="text-lg" slot="start"></ion-icon>
       <label>Video trên thiết bị</label>
@@ -58,9 +59,10 @@
 
     <label class="flex flex-col w-full">
       <span class="font-medium">Thời gian</span>
-      <span>
-        {{ pack.startRecordDate | date:'yyyy-MM-dd HH:mm' }} → {{ pack.endRecordDate | date:'HH:mm' }} ({{ fmtDuration(pack.timeRecordedMs) }})
-      </span>
+      <div class="flex w-full justify-between">
+        <span> {{ pack.startRecordDate | date:'yyyy-MM-dd HH:mm:ss' }} → {{ pack.endRecordDate | date:'HH:mm:ss' }} </span>
+        <span> {{ fmtDuration(pack.timeRecordedMs) }}</span>
+      </div>
     </label>
 
     <label class="flex w-full justify-between" *ngIf="pack.videoFileSize">

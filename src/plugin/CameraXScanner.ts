@@ -1,66 +1,124 @@
-import { registerPlugin, PluginListenerHandle, Capacitor } from "@capacitor/core";
+import { registerPlugin, Capacitor, PluginListenerHandle } from "@capacitor/core";
 
-export interface CameraXScannerPlugin {
-  checkPermissions(): Promise<{ camera: boolean; microphone: boolean }>;
-  requestPermissions(): Promise<{ granted: boolean }>;
+export interface StartPreviewOptions {
+  toBack?: boolean;         // Android: render preview phía sau WebView (cần webview trong suốt)
+  withAudio?: boolean;      // Ghi kèm audio hay không
+}
 
-  startAnalysis(opts?: { enableTorch?: boolean }): Promise<{ started: boolean }>;
-  stopAnalysis(): Promise<{ stopped: boolean }>;
+export interface StartRecordingOptions {
+  fileNamePrefix?: string;  // Tiền tố tên file
+  quality?: "sd" | "hd" | "fhd" | "uhd";
+  saveToGallery?: boolean;  // (tùy nền tảng)
+}
 
-  startRecording(opts?: { withAudio?: boolean }): Promise<{ started: boolean; filePath: string }>;
-  stopRecording(): Promise<{ stopped: boolean }>;
+export interface StopRecordingResult {
+  uri: string;              // Android: content:// URI (MediaStore), iOS: file:/// URL
+}
 
-  addListener(eventName: "barcodeScanned", listener: (e: { rawValue: string; format: number }) => void): Promise<PluginListenerHandle>;
+export interface BarcodeEvent {
+  value: string;
+  format: string;           // "QR_CODE", "CODE_128", ...
+  ts: number;               // epoch ms
+}
 
+export interface SetTimestampOverlayOptions {
+  enabled: boolean;         // bật/tắt đốt timestamp trực tiếp vào video (Android)
+  format?: string;          // "yyyy-MM-dd HH:mm:ss" (mặc định)
+  textSizeSp?: number;      // kích thước chữ theo sp (mặc định 18)
+  color?: string;           // mã màu "#FFFFFFFF" (ARGB/RGB)
+  marginDp?: number;        // lề theo dp (mặc định 12)
+}
+
+export interface SetTorchOptions {
+  on: boolean;
+}
+
+export interface CameraBarcodePlugin {
+  startPreview(options?: StartPreviewOptions): Promise<void>;
+  startRecording(options?: StartRecordingOptions): Promise<{ recordingId: string }>;
+  stopRecording(): Promise<StopRecordingResult>;
+  setTorch(options: SetTorchOptions): Promise<void>;
+  /** Helper method for backward compatibility */
+  setTorchState(on: boolean): Promise<void>;
+  setAudioEnabled(enabled: boolean): Promise<void>;
+
+  /** NEW: Bật/tắt & cấu hình timestamp overlay (đốt trực tiếp vào video trên Android) */
+  setTimestampOverlay(options: SetTimestampOverlayOptions): Promise<void>;
+
+  addListener(eventName: "barcode", listenerFunc: (event: BarcodeEvent) => void): Promise<PluginListenerHandle>;
   removeAllListeners(): Promise<void>;
 }
 
-// Proxy dự phòng (web/dev hoặc khi native chưa available)
-const proxy = registerPlugin<CameraXScannerPlugin>("CameraXScanner");
+// ---- Đăng ký plugin ----
+const _CameraBarcode = registerPlugin<CameraBarcodePlugin>("CameraBarcode");
 
-// Lấy native **tại thời điểm gọi**
-function getNative(): any {
-  const g: any = globalThis as any;
-  // isNativePlatform có từ Capacitor v5
-  const isNative =
-    typeof Capacitor?.isNativePlatform === "function" ? Capacitor.isNativePlatform() : !!g?.Capacitor?.platform && g.Capacitor.platform !== "web";
-
-  if (!isNative) return undefined;
-  return g?.Capacitor?.Plugins?.CameraXScanner;
+// ---- (Tuỳ chọn) wrapper an toàn khi chạy web/dev (không native) ----
+function isNative() {
+  try {
+    return typeof Capacitor?.isNativePlatform === "function"
+      ? Capacitor.isNativePlatform()
+      : (Capacitor as any)?.platform && (Capacitor as any).platform !== "web";
+  } catch {
+    return false;
+  }
 }
 
-// Lazy wrapper: mỗi method đều chọn native nếu có, ngược lại dùng proxy
-export const CameraXScanner: CameraXScannerPlugin = {
-  async checkPermissions() {
-    const n = getNative();
-    return (n ?? proxy).checkPermissions();
+/**
+ * Export đối tượng dùng trong app.
+ * Trên web (không native), các method vẫn tồn tại nhưng sẽ throw lỗi có ý nghĩa.
+ */
+export const CameraBarcode: CameraBarcodePlugin = {
+  async startPreview(options?: StartPreviewOptions) {
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    return _CameraBarcode.startPreview(options);
   },
-  async requestPermissions() {
-    const n = getNative();
-    return (n ?? proxy).requestPermissions();
-  },
-  async startAnalysis(opts?: { enableTorch?: boolean }) {
-    const n = getNative();
-    return (n ?? proxy).startAnalysis(opts);
-  },
-  async stopAnalysis() {
-    const n = getNative();
-    return (n ?? proxy).stopAnalysis();
-  },
-  async startRecording(opts?: { withAudio?: boolean }) {
-    const n = getNative();
-    return (n ?? proxy).startRecording(opts);
+  async startRecording(options?: StartRecordingOptions) {
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    return _CameraBarcode.startRecording(options);
   },
   async stopRecording() {
-    const n = getNative();
-    return (n ?? proxy).stopRecording();
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    return _CameraBarcode.stopRecording();
   },
-  async addListener(eventName: "barcodeScanned", listener: (e: { rawValue: string; format: number }) => void) {
-    const n = getNative();
-    return (n ?? proxy).addListener(eventName, listener);
+  async setTorch(options: SetTorchOptions) {
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    return (_CameraBarcode as any).setTorch(options);
+  },
+  /** Helper method for backward compatibility */
+  async setTorchState(on: boolean) {
+    return this.setTorch({ on });
+  },
+  async setAudioEnabled(enabled: boolean) {
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    // Call native plugin with object parameter as expected by Android implementation
+    return (_CameraBarcode as any).setAudioEnabled({ on: enabled });
+  },
+  async setTimestampOverlay(options: SetTimestampOverlayOptions) {
+    if (!isNative()) throw new Error("CameraBarcode is only available on native platforms.");
+    // defaults (khớp native)
+    const payload: SetTimestampOverlayOptions = {
+      enabled: options.enabled,
+      format: options.format ?? "yyyy-MM-dd HH:mm:ss",
+      textSizeSp: options.textSizeSp ?? 18,
+      color: options.color ?? "#FFFFFFFF",
+      marginDp: options.marginDp ?? 12,
+    };
+    return _CameraBarcode.setTimestampOverlay(payload);
+  },
+  async addListener(eventName: "barcode", listenerFunc: (event: BarcodeEvent) => void) {
+    // Cho phép debug trên web: có thể return dummy handle để không crash
+    if (!isNative()) {
+      console.warn("[CameraBarcode] addListener called on web; no-op.");
+      return {
+        remove: async () => void 0,
+      } as unknown as PluginListenerHandle;
+    }
+    return _CameraBarcode.addListener(eventName, listenerFunc);
   },
   async removeAllListeners() {
-    const n = getNative();
-    return (n ?? proxy).removeAllListeners();
+    if (!isNative()) return;
+    return _CameraBarcode.removeAllListeners();
   },
 };
+
+export default CameraBarcode;

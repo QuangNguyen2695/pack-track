@@ -14,7 +14,15 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from "@angular/common/http";
 import { TokenInterceptor } from "./Interceptor/token.interceptor";
 import { LoadingInterceptor } from "./Interceptor/loading-interceptor";
 import { LoaddingScreenComponent } from "./shared/component/loadding-screen/loadding-screen.component";
+import { SyncStatusWidgetComponent } from "./shared/components/sync-status-widget/sync-status-widget.component";
 import { NgxSonnerToaster } from "ngx-sonner";
+
+// ng-zorro-antd i18n
+import { NZ_I18N, vi_VN } from 'ng-zorro-antd/i18n';
+import { registerLocaleData } from '@angular/common';
+import vi from '@angular/common/locales/vi';
+
+registerLocaleData(vi);
 
 @NgModule({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -29,6 +37,7 @@ import { NgxSonnerToaster } from "ngx-sonner";
     ScrollingModule,
     FilterPipe,
     LoaddingScreenComponent,
+    SyncStatusWidgetComponent,
     NgxSonnerToaster,
   ],
   providers: [
@@ -39,6 +48,7 @@ import { NgxSonnerToaster } from "ngx-sonner";
       useClass: LoadingInterceptor,
       multi: true,
     },
+    { provide: NZ_I18N, useValue: vi_VN },
   ],
   bootstrap: [AppComponent],
 })

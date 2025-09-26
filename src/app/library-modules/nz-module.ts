@@ -22,6 +22,7 @@ import { NzSkeletonModule } from "ng-zorro-antd/skeleton";
 import { NzTableModule } from "ng-zorro-antd/table";
 import { NzTagModule } from "ng-zorro-antd/tag";
 import { NzDatePickerModule } from "ng-zorro-antd/date-picker";
+import { NzProgressModule } from "ng-zorro-antd/progress";
 
 import { NzCardModule } from "ng-zorro-antd/card";
 import { NzEmptyModule } from "ng-zorro-antd/empty";
@@ -54,6 +55,7 @@ import { NzDescriptionsModule } from "ng-zorro-antd/descriptions";
     NzTableModule,
     NzTagModule,
     NzDatePickerModule,
+    NzProgressModule,
     NzCardModule,
     NzEmptyModule,
     NzSegmentedModule,

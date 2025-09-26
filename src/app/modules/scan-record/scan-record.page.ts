@@ -7,9 +7,11 @@ import { LoadingService } from "@rsApp/shared/services/loadding-service/loading.
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { DeviceInfoService } from "@rsApp/shared/services/device/device-info.service";
 import { PackService } from "@rsApp/shared/services/pack-service/pack.service";
+import { VideoCacheService } from "@rsApp/shared/services/video-cache/video-cache.service";
 
-import { CameraBarcode } from "capacitor-camera-barcode";
+import { CameraBarcode } from "../../../plugin/CameraXScanner";
 import { Filesystem } from "@capacitor/filesystem";
+import { KeepAwake } from "@capacitor-community/keep-awake";
 import { ENV } from "src/environments/environment.development";
 
 type RecState = "idle" | "previewing" | "starting" | "recording" | "stopping";
@@ -71,6 +73,10 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
   // Cờ bật/tắt tính năng auto-save 5s
   autoSaveEnabled = false;
+  // Cờ bật/tắt hiện ngày giờ trên preview & video
+  timestampEnabled = true;
+  // Cờ bật/tắt ghi âm
+  audioEnabled = true;
 
   // Metadata video hiện tại
   video: VideoMeta | null = null;
@@ -84,6 +90,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     private credential: CredentialService,
     private deviceInfo: DeviceInfoService,
     private packService: PackService,
+    private videoCacheService: VideoCacheService,
     private toastCtl: ToastController,
     private alertCtl: AlertController,
   ) {}
@@ -94,9 +101,33 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       const saved = localStorage.getItem("autoSaveEnabled");
       if (saved !== null) this.autoSaveEnabled = saved === "1";
     } catch {}
+
+    // Khôi phục cấu hình timestamp từ localStorage (mặc định bật)
+    try {
+      const t = localStorage.getItem("timestampEnabled");
+      if (t !== null) this.timestampEnabled = t === "1";
+    } catch {}
+
+    // Khôi phục cấu hình audio từ localStorage (mặc định bật)
+    try {
+      const a = localStorage.getItem("audioEnabled");
+      if (a !== null) this.audioEnabled = a === "1";
+    } catch {}
   }
 
   async ngOnDestroy(): Promise<void> {
+    // Cho phép màn hình tắt khi destroy page
+    try {
+      await KeepAwake.allowSleep();
+      console.log("Keep awake deactivated");
+    } catch (error) {
+      console.warn("Failed to deactivate keep awake:", error);
+    }
+
+    // Hide timestamp overlay when page is destroyed
+    try {
+      await CameraBarcode.setTimestampOverlay({ enabled: false });
+    } catch {}
     await CameraBarcode.removeAllListeners().catch(() => {});
     try {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
@@ -107,6 +138,18 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   async ionViewWillLeave() {
+    // Cho phép màn hình tắt khi rời khỏi page
+    try {
+      await KeepAwake.allowSleep();
+      console.log("Keep awake deactivated");
+    } catch (error) {
+      console.warn("Failed to deactivate keep awake:", error);
+    }
+
+    // Hide timestamp overlay when navigating away
+    try {
+      await CameraBarcode.setTimestampOverlay({ enabled: false });
+    } catch {}
     await CameraBarcode.removeAllListeners().catch(() => {});
     try {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
@@ -119,7 +162,14 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   async ionViewWillEnter() {
+    // Giữ màn hình sáng khi vào trang scan
     if (!ENV.isWebApp && (this.platform.is("ios") || this.platform.is("android"))) {
+      try {
+        await KeepAwake.keepAwake();
+        console.log("Keep awake activated");
+      } catch (error) {
+        console.warn("Failed to activate keep awake:", error);
+      }
       await this.startInlinePreview();
     }
   }
@@ -130,9 +180,23 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     this.infoText = "Đang mở camera...";
 
     await CameraBarcode.removeAllListeners().catch(() => {}); // tránh nhân listener
-    await CameraBarcode.startPreview({ toBack: true, withAudio: false });
+    await CameraBarcode.startPreview({ toBack: true, withAudio: this.audioEnabled });
     this.recState = "previewing";
     this.infoText = "Sẵn sàng quét mã";
+
+    // Bật/tắt timestamp theo cờ người dùng cho phần preview
+    try {
+      await CameraBarcode.setTimestampOverlay({
+        enabled: this.timestampEnabled,
+        format: "yyyy-MM-dd HH:mm:ss",
+        textSizeSp: 18,
+        color: "#FFFFFFFF",
+        marginDp: 12,
+      });
+    } catch {}
+
+    // Test torch capabilities khi camera đã sẵn sàng
+    await this.checkTorchCapabilities();
 
     await this.attachBarcodeListener();
   }
@@ -250,11 +314,24 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     this.resetCounter(); // reset timer theo clip mới
 
     try {
-      const { recordingId } = await CameraBarcode.startRecording({
-        fileNamePrefix: code,
-        quality: "sd",
+      // Áp dụng cờ timestamp cho cả phần ghi hình (burn-in), bật trước khi startRecording
+      await CameraBarcode.setTimestampOverlay({
+        enabled: this.timestampEnabled,
+        format: "yyyy-MM-dd HH:mm:ss",
+        textSizeSp: 18,
+        color: "#FFFFFFFF",
+        marginDp: 12,
       });
-      // console.log('recordingId', recordingId);
+
+      // Try preferred quality first; fall back gracefully if device doesn't support it
+      let recordingId: string | undefined;
+      try {
+        ({ recordingId } = await CameraBarcode.startRecording({
+          fileNamePrefix: code,
+          quality: "hd", // prefer hd for better 16:9; plugin will also try to fallback
+        } as any));
+      } catch {}
+      console.log("recordingId", recordingId);
       this.startCounter();
       this.recState = "recording";
     } catch (e) {
@@ -317,9 +394,78 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
   async toggleTorch() {
     try {
-      this.torchOn = !this.torchOn;
-      await CameraBarcode.setTorch(this.torchOn); // plugin: boolean
+      console.log("Current torch state:", this.torchOn);
+      console.log("Current recording state:", this.recState);
+
+      // Kiểm tra xem có đang ở trạng thái có thể sử dụng torch không
+      if (this.recState === "idle") {
+        return;
+      }
+
+      // Kiểm tra platform
+      if (!this.platform.is("ios") && !this.platform.is("android")) {
+        return;
+      }
+
+      const newTorchState = !this.torchOn;
+      console.log("Setting torch to:", newTorchState);
+
+      // Thử set torch với timeout
+      const torchPromise = CameraBarcode.setTorchState(newTorchState);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Torch operation timeout")), 5000));
+
+      await Promise.race([torchPromise, timeoutPromise]);
+      // Chỉ cập nhật state khi API call thành công
+      this.torchOn = newTorchState;
+      // Feedback cho user
+    } catch (error) {
+
+      // Reset torch state về false nếu có lỗi
+      this.torchOn = false;
+
+      let errorMessage = "Không thể bật/tắt đèn pin";
+      if (error instanceof Error) {
+        if (error.message.includes("timeout")) {
+          errorMessage = "Đèn pin không phản hồi. Vui lòng thử lại";
+        } else if (error.message.includes("not available")) {
+          errorMessage = "Thiết bị không hỗ trợ đèn pin";
+        }
+      }
+
+      await this.toast(errorMessage);
+    }
+  }
+
+  // Bật/tắt ghi âm và áp dụng ngay cho lần quay tiếp theo
+  async setAudioEnabled(v: boolean) {
+    this.audioEnabled = v;
+    try {
+      localStorage.setItem("audioEnabled", v ? "1" : "0");
     } catch {}
+    // Thông báo xuống native để nó cập nhật controller.withAudio cho lần ghi tiếp theo
+    try {
+      await CameraBarcode.setAudioEnabled(v);
+    } catch {}
+  }
+
+  // Bật/tắt timestamp và lưu cấu hình
+  async setTimestampEnabled(v: boolean) {
+    this.timestampEnabled = v;
+    try {
+      localStorage.setItem("timestampEnabled", v ? "1" : "0");
+    } catch {}
+    // Áp dụng ngay nếu đang ở trạng thái preview
+    if (this.recState === "previewing" || this.recState === "idle") {
+      try {
+        await CameraBarcode.setTimestampOverlay({
+          enabled: this.timestampEnabled,
+          format: "yyyy-MM-dd HH:mm:ss",
+          textSizeSp: 18,
+          color: "#FFFFFFFF",
+          marginDp: 12,
+        });
+      } catch {}
+    }
   }
 
   // Cho phép bật/tắt tính năng autosave 5s và lưu vào localStorage
@@ -465,8 +611,54 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         notes: undefined,
       };
 
-      this.packService.create(payload).subscribe(() => {});
-    } catch {}
+      // Thử gọi API save video
+      this.packService.create(payload).subscribe({
+        next: (result) => {
+          if (result && result._id) {
+            console.log("Video saved successfully to API:", result._id);
+          } else {
+            // API trả về nhưng không thành công, cache video
+            this.cacheVideoOnFailure(payload);
+          }
+        },
+        error: (error) => {
+          console.error("API save failed, caching video:", error);
+          // Cache video khi API call fail
+          this.cacheVideoOnFailure(payload);
+        },
+      });
+    } catch (error) {
+      console.error("Failed to persist pack:", error);
+    }
+  }
+
+  /**
+   * Cache video khi API save thất bại
+   */
+  private async cacheVideoOnFailure(payload: any) {
+    try {
+      await this.videoCacheService.cacheVideo(payload);
+
+      console.log("Video cached successfully for retry later");
+
+      // Hiển thị thông báo cho user
+      const toast = await this.toastCtl.create({
+        message: "Video đã được lưu tạm thời. Sẽ tự động đồng bộ khi có mạng.",
+        duration: 3000,
+        color: "warning",
+        position: "bottom",
+      });
+      await toast.present();
+    } catch (error) {
+      console.error("Failed to cache video:", error);
+      const toast = await this.toastCtl.create({
+        message: "Lỗi lưu video. Vui lòng thử lại.",
+        duration: 3000,
+        color: "danger",
+        position: "bottom",
+      });
+      await toast.present();
+    }
   }
 
   private async getFileSizeBytes(path: string): Promise<number | undefined> {
@@ -497,5 +689,72 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private async toast(message: string) {
     const t = await this.toastCtl.create({ message, duration: 1800, position: "bottom" });
     await t.present();
+  }
+
+  /**
+   * Đồng bộ thủ công các video cache
+   */
+  async syncCachedVideos() {
+    try {
+      const pendingCount = await this.videoCacheService.getPendingSyncCount();
+
+      if (pendingCount === 0) {
+        const toast = await this.toastCtl.create({
+          message: "Không có video nào cần đồng bộ",
+          duration: 2000,
+          color: "primary",
+          position: "bottom",
+        });
+        await toast.present();
+        return;
+      }
+
+      await this.videoCacheService.syncWithLoading();
+
+      const remainingCount = await this.videoCacheService.getPendingSyncCount();
+      const syncedCount = pendingCount - remainingCount;
+
+      const toast = await this.toastCtl.create({
+        message: `Đã đồng bộ ${syncedCount}/${pendingCount} video thành công`,
+        duration: 3000,
+        color: syncedCount === pendingCount ? "success" : "warning",
+        position: "bottom",
+      });
+      await toast.present();
+    } catch (error) {
+      console.error("Manual sync failed:", error);
+      const toast = await this.toastCtl.create({
+        message: "Lỗi đồng bộ video. Vui lòng thử lại.",
+        duration: 3000,
+        color: "danger",
+        position: "bottom",
+      });
+      await toast.present();
+    }
+  }
+
+  /**
+   * Xem số lượng video chưa đồng bộ
+   */
+  async getCachedVideoCount(): Promise<number> {
+    return await this.videoCacheService.getPendingSyncCount();
+  }
+
+  /**
+   * Kiểm tra khả năng sử dụng torch của thiết bị
+   */
+  private async checkTorchCapabilities() {
+    try {
+      console.log("Testing torch capabilities...");
+
+      // Thử bật torch một cách im lặng để test
+      await CameraBarcode.setTorchState(false);
+      console.log("Torch capabilities: OK");
+    } catch (error) {
+      console.warn("Torch not available on this device:", error);
+
+      // Disable torch button hoặc thông báo user
+      // this.torchSupported = false; // có thể thêm flag này vào component
+    }
   }
 }

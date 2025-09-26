@@ -4,6 +4,8 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { Router } from '@angular/router';
 import { AuthAccessService } from './shared/services/auth-access-service/auth-access.service';
 import { CredentialService } from './shared/services/credential-service/credential.service';
+import { VideoCacheService } from './shared/services/video-cache/video-cache.service';
+import { SyncProgressService } from './shared/services/sync-progress/sync-progress.service';
 import { Utils } from './shared/utils/utils';
 
 @Component({
@@ -20,6 +22,8 @@ export class AppComponent implements OnInit {
     public utils: Utils,
     private authAccessService: AuthAccessService,
     private credentialService: CredentialService,
+    private videoCacheService: VideoCacheService,
+    private syncProgressService: SyncProgressService,
     private router: Router
   ) {
     this.initializeApp();
@@ -32,6 +36,7 @@ export class AppComponent implements OnInit {
   async initializeApp() {
     const currentUser = await this.credentialService.getCurrentUser();
     this.currentUser = currentUser;
+    
     if (this.platform.is('cordova') || this.platform.is('capacitor')) {
       console.log('Chạy trên thiết bị di động');
       // Làm cho thanh status bar trong suốt
@@ -40,6 +45,38 @@ export class AppComponent implements OnInit {
       StatusBar.setBackgroundColor({ color: '#00000000' });
     } else {
       console.log('Chạy trên trình duyệt');
+    }
+
+    // Auto-sync cached videos khi app khởi động
+    this.autoSyncCachedVideos();
+  }
+
+  /**
+   * Tự động đồng bộ video cache khi app khởi động
+   */
+  private async autoSyncCachedVideos() {
+    try {
+      // Kiểm tra số lượng video chưa đồng bộ
+      const pendingCount = await this.videoCacheService.getPendingSyncCount();
+      
+      if (pendingCount > 0) {
+        console.log(`Found ${pendingCount} cached videos to sync`);
+        
+        // Hiển thị progress widget ngay lập tức
+        this.syncProgressService.showProgress();
+        
+        // Delay một chút để app khởi động hoàn toàn trước khi sync
+        setTimeout(async () => {
+          try {
+            await this.videoCacheService.syncWithLoading();
+            console.log('Auto-sync completed successfully');
+          } catch (error) {
+            console.error('Auto-sync failed:', error);
+          }
+        }, 1000); // Delay 3 giây
+      }
+    } catch (error) {
+      console.error('Failed to check pending sync count:', error);
     }
   }
 

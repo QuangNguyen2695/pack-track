@@ -1,0 +1,199 @@
+// Base widget positioning and layout styles
+.sync-widget {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--ion-color-light);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  padding: 16px;
+  z-index: 9999;
+  min-width: 240px;
+  max-width: 300px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: top right;
+
+  // Minimized state styles
+  &.minimized {
+    min-width: 50px;
+    width: 50px;
+    height: 50px;
+    padding: 8px;
+    border-radius: 50%;
+    background: var(--ion-color-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    transform: scale(0.8);
+    backdrop-filter: blur(8px);
+
+    .sync-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      
+      .sync-title,
+      .close-btn,
+      .minimize-btn {
+        display: none;
+      }
+
+      ion-icon {
+        color: var(--ion-color-light);
+        font-size: 20px;
+        margin: 0;
+      }
+    }
+
+    .sync-info,
+    .sync-actions {
+      display: none;
+    }
+
+    // Hover effect cho minimized state
+    &:hover {
+      transform: scale(0.85);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+
+      ion-icon {
+        transform: scale(1.2);
+      }
+    }
+  }
+}
+
+.sync-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  ion-icon {
+    font-size: 18px;
+    color: var(--ion-color-medium-shade);
+
+    &.spinning {
+      color: var(--ion-color-primary);
+    }
+  }
+
+  .sync-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ion-color-dark);
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .close-btn,
+  .minimize-btn {
+    --padding-start: 4px;
+    --padding-end: 4px;
+    --color: var(--ion-color-medium-shade);
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      transform: scale(0.9);
+    }
+
+    ion-icon {
+      font-size: 16px;
+    }
+  }
+
+  .minimize-btn {
+    --color: var(--ion-color-primary);
+
+    &:hover {
+      --color: var(--ion-color-primary-shade);
+    }
+  }
+
+  // Content transition for expand/collapse
+  .header-content {
+    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transform-origin: left center;
+  }
+
+  .sync-widget.minimized & .header-content {
+    transform: scale(0) translateX(-20px);
+    opacity: 0;
+  }
+}
+
+.sync-info {
+  // Scale và fade animation
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transform-origin: top center;
+  overflow: hidden;
+
+  // Minimized state
+  .sync-widget.minimized & {
+    transform: scale(0.8) translateY(-10px);
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  .progress-text {
+    font-size: 12px;
+    color: var(--ion-color-medium-shade);
+    display: flex;
+    align-items: center;
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    .failed-count {
+      color: var(--ion-color-danger);
+      font-weight: 500;
+    }
+  }
+
+  // Custom styling for nz-progress với animation
+  nz-progress {
+    transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+
+    ::ng-deep {
+      .ant-progress-bg {
+        transition: width 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      }
+
+      .ant-progress-line {
+        height: 8px !important;
+        transition: all 0.3s ease;
+      }
+
+      .ant-progress-outer {
+        border-radius: 4px;
+        overflow: hidden;
+      }
+    }
+  }
+
+  .current-video {
+    font-size: 11px;
+    color: var(--ion-color-medium-shade);
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.sync-actions {
+  display: flex;
+  justify-content: flex-end;
+
+  ion-button {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    font-size: 12px;
+    height: 28px;
+  }
+}
