@@ -1,17 +1,19 @@
-import { ElementRef, Injectable } from '@angular/core';
-import { BehaviorSubject, Subject } from 'rxjs';
-import { Location } from '@angular/common';
-import { DomSanitizer } from '@angular/platform-browser';
-import { FormGroup } from '@angular/forms';
+import { ElementRef, Injectable } from "@angular/core";
+import { BehaviorSubject, Subject } from "rxjs";
+import { Location } from "@angular/common";
+import { DomSanitizer } from "@angular/platform-browser";
+import { FormGroup } from "@angular/forms";
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: "root",
 })
 export class Utils {
   private loadingSubject = new BehaviorSubject<boolean>(false);
   loading$ = this.loadingSubject.asObservable();
 
   isApp = false;
+
+  VN_MOBILE_REX = /^(?:(?:\+|00)84|0)(?:[35789])\d{8}$/;
 
   constructor(private location: Location, private sanitizer: DomSanitizer) {}
 

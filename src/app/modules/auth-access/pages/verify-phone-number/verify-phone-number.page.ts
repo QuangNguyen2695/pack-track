@@ -28,7 +28,7 @@ export class VerifyPhoneNumberPage implements OnInit {
 
   initForm() {
     this.verifyPhoneNumberForm = this.fb.group({
-      phoneNumber: ["0961090433", [Validators.required, Validators.pattern(/(?:\+84|0084|0)[235789][0-9]{1,2}[0-9]{7}(?:[^\d]+|$)/g)]],
+      phoneNumber: ["0961090433", [Validators.required, Validators.pattern(this.utils.VN_MOBILE_REX)]],
     });
   }
 
