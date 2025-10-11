@@ -1,4 +1,4 @@
-import { CUSTOM_ELEMENTS_SCHEMA, NgModule } from "@angular/core";
+import { CUSTOM_ELEMENTS_SCHEMA, inject, NgModule, provideAppInitializer } from "@angular/core";
 import { BrowserModule } from "@angular/platform-browser";
 import { RouteReuseStrategy } from "@angular/router";
 
@@ -18,11 +18,19 @@ import { SyncStatusWidgetComponent } from "./shared/components/sync-status-widge
 import { NgxSonnerToaster } from "ngx-sonner";
 
 // ng-zorro-antd i18n
-import { NZ_I18N, vi_VN } from 'ng-zorro-antd/i18n';
-import { registerLocaleData } from '@angular/common';
-import vi from '@angular/common/locales/vi';
+import { NZ_I18N, vi_VN } from "ng-zorro-antd/i18n";
+import { registerLocaleData } from "@angular/common";
+import vi from "@angular/common/locales/vi";
+import { QuotaInterceptor } from "./Interceptor/quota.interceptor";
+import { AuthService } from "./shared/services/auth-service/auth.service";
 
 registerLocaleData(vi);
+
+function initAuth() {
+  // chạy lúc bootstrap, có injection context
+  const auth = inject(AuthService);
+  return auth.init(); // Promise<void> | Observable<any> đều OK
+}
 
 @NgModule({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -49,6 +57,8 @@ registerLocaleData(vi);
       multi: true,
     },
     { provide: NZ_I18N, useValue: vi_VN },
+    { provide: HTTP_INTERCEPTORS, useClass: QuotaInterceptor, multi: true },
+    provideAppInitializer(initAuth),
   ],
   bootstrap: [AppComponent],
 })

@@ -1,10 +1,11 @@
 import { Component, OnInit } from "@angular/core";
 import { FormGroup, FormBuilder, Validators } from "@angular/forms";
 import { Router } from "@angular/router";
-import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "../../../../shared/services/auth-service/auth.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { UtilsModal } from "@rsApp/shared/utils/utils-modal";
 import { toast } from "ngx-sonner";
+import { RequestAuthRescue } from "../../model/auth.model";
 
 @Component({
   selector: "app-verify-password",
@@ -19,7 +20,7 @@ export class VerifyPasswordPage implements OnInit {
   userResidual!: any;
 
   constructor(
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private router: Router,
     private fb: FormBuilder,
     private utilsModal: UtilsModal,
@@ -42,7 +43,7 @@ export class VerifyPasswordPage implements OnInit {
 
   initForm() {
     this.verifyPasswordForm = this.fb.group({
-      password: ["@Solid2023", [Validators.required]],
+      password: ["Solid2023", [Validators.required]],
     });
   }
 
@@ -78,7 +79,7 @@ export class VerifyPasswordPage implements OnInit {
   }
 
   login(password: string) {
-    this.authAccessService.login(this.userResidual.phoneNumber, password).subscribe(async (res: any) => {
+    this.authService.login(this.userResidual.phoneNumber, password).subscribe(async (res: any) => {
       if (res.error) {
         toast.error("Mật khẩu không đúng, vui lòng thử lại");
         return;
@@ -88,7 +89,12 @@ export class VerifyPasswordPage implements OnInit {
   }
 
   forgotOrCreatePassword() {
-    this.authAccessService.sendOtp(this.userResidual.phoneNumber).subscribe(async (res: any) => {
+    const requestAuthRescue: RequestAuthRescue = {
+      identifier: this.userResidual.phoneNumber,
+      purpose: "2fa",
+    };
+
+    this.authService.sendAuthRescue(requestAuthRescue).subscribe(async (res: any) => {
       this.router.navigateByUrl(`/auth-access/verify-otp`, { state: { mode: "update-password" } });
     });
   }

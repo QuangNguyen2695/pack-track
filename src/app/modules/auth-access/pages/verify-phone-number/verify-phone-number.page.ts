@@ -1,5 +1,5 @@
 import { Component, OnInit } from "@angular/core";
-import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "../../../../shared/services/auth-service/auth.service";
 import { Router } from "@angular/router";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
@@ -15,7 +15,7 @@ export class VerifyPhoneNumberPage implements OnInit {
   verifyPhoneNumberForm!: FormGroup;
 
   constructor(
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private router: Router,
     private fb: FormBuilder,
     private credentialService: CredentialService,
@@ -28,7 +28,7 @@ export class VerifyPhoneNumberPage implements OnInit {
 
   initForm() {
     this.verifyPhoneNumberForm = this.fb.group({
-      phoneNumber: ["0961090433", [Validators.required, Validators.pattern(this.utils.VN_MOBILE_REX)]],
+      phoneNumber: ["0961090222", [Validators.required, Validators.pattern(this.utils.VN_MOBILE_REX)]],
     });
   }
 
@@ -55,7 +55,7 @@ export class VerifyPhoneNumberPage implements OnInit {
   }
 
   verifyPhoneNumber(phoneNumber: string) {
-    this.authAccessService.verifyPhoneNumber(phoneNumber).subscribe(async (res: any) => {
+    this.authService.verifyPhoneNumber(phoneNumber).subscribe(async (res: any) => {
       const userResidual: { phoneNumber: string; name?: string } = { phoneNumber: phoneNumber };
       if (res) {
         userResidual.name = res;

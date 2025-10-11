@@ -15,7 +15,10 @@ export class PackService {
   /** Tạo record sau khi quay xong */
   create(payload: PackCreatePayload, skipLoading = false) {
     const url = `${this.baseUrl}`;
-    return this.api.post(url, payload, skipLoading).pipe(
+
+    const options = skipLoading ? { skipLoading: true } : {};
+
+    return this.api.post(url, payload, options).pipe(
       map((res: any) => res?.data as PackDoc),
       catchError((error) => of(error?.error ?? null)),
     );
@@ -97,7 +100,9 @@ export class PackService {
       filters: searchParams.filters,
     };
 
-    return this.api.post(url, body, true).pipe(
+    const options = { skipLoading: true };
+
+    return this.api.post(url, body, options).pipe(
       tap((res: any) => {}),
       catchError((error) => of([])),
     );

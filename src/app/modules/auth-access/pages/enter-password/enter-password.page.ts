@@ -1,7 +1,7 @@
 import { Component, OnInit } from "@angular/core";
 import { AbstractControl, FormBuilder, FormGroup, ValidationErrors, ValidatorFn, Validators } from "@angular/forms";
 import { Router } from "@angular/router";
-import { AuthAccessService } from "@rsApp/shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "@rsApp/shared/services/auth-service/auth.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { Utils } from "@rsApp/shared/utils/utils";
 import { UtilsModal } from "@rsApp/shared/utils/utils-modal";
@@ -32,7 +32,7 @@ export class EnterPasswordPage implements OnInit {
   token!: string;
 
   constructor(
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private router: Router,
     private fb: FormBuilder,
     private utils: Utils,
@@ -161,7 +161,7 @@ export class EnterPasswordPage implements OnInit {
       newPassword: password,
     };
 
-    this.authAccessService.resetPassword(requestResetPassword).subscribe((res: any) => {
+    this.authService.resetPassword(requestResetPassword).subscribe((res: any) => {
       if (res.error) {
         this.utilsModal.presentCusToast(res.message);
         return;
@@ -171,7 +171,7 @@ export class EnterPasswordPage implements OnInit {
   }
 
   updatePassword(password: string) {
-    this.authAccessService.updatePassword(password).subscribe((res: any) => {
+    this.authService.updatePassword(password).subscribe((res: any) => {
       if (res.error) {
         this.utilsModal.presentCusToast(res.message);
         return;

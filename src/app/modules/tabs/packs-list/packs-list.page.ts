@@ -78,6 +78,7 @@ export class PacksListPage implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe((dev) => {
         this.currentDeviceId = (dev?.deviceId ?? "").trim();
+        console.log("🚀 ~ PacksListPage ~ ngOnInit ~ this.currentDeviceId:", this.currentDeviceId)
         // nếu đã có data items, có thể build ownerIdSet ở đây
       });
 

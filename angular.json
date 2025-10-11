@@ -31,7 +31,7 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/output.css", "src/theme/variables.scss", "node_modules/ng-zorro-antd/ng-zorro-antd.min.css"],
+            "styles": ["node_modules/ng-zorro-antd/ng-zorro-antd.min.css", "src/theme/variables.scss", "src/global.scss", "src/output.css"],
             "scripts": ["./node_modules/@lottiefiles/lottie-player/dist/lottie-player.js"]
           },
           "configurations": {
@@ -117,7 +117,7 @@
                 "output": "./svg"
               }
             ],
-            "styles": ["src/global.scss", "src/output.css", "src/theme/variables.scss", "node_modules/ng-zorro-antd/ng-zorro-antd.min.css"],
+            "styles": ["node_modules/ng-zorro-antd/ng-zorro-antd.min.css", "src/theme/variables.scss", "src/global.scss", "src/output.css"],
             "scripts": ["./node_modules/@lottiefiles/lottie-player/dist/lottie-player.js"]
           },
           "configurations": {

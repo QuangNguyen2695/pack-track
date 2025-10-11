@@ -1,12 +1,12 @@
 import { Component, OnInit, Renderer2 } from "@angular/core";
 import { Router } from "@angular/router";
-import { AuthAccessService } from "@rsApp/shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "@rsApp/shared/services/auth-service/auth.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { UtilsModal } from "@rsApp/shared/utils/utils-modal";
 import { NgxOtpStatus } from "ngx-otp-input";
 import { NgxOtpInputComponentOptions } from "ngx-otp-input";
 import { toast } from "ngx-sonner";
-import { RequestForgotPassword, VerifyAuthRescue } from "../../model/auth.model";
+import { RequestAuthRescue, RequestForgotPassword, VerifyAuthRescue } from "../../model/auth.model";
 
 @Component({
   selector: "app-verify-otp",
@@ -24,7 +24,7 @@ export class VerifyOtpPage implements OnInit {
 
   constructor(
     private router: Router,
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private utilsModal: UtilsModal,
     private credentialService: CredentialService,
     private renderer: Renderer2,
@@ -72,7 +72,12 @@ export class VerifyOtpPage implements OnInit {
   }
 
   resendOtp() {
-    this.authAccessService.sendOtp(this.userResidual.phoneNumber).subscribe((res: any) => {
+    const requestAuthRescue: RequestAuthRescue = {
+      identifier: this.userResidual.phoneNumber,
+      purpose: "2fa",
+    };
+
+    this.authService.sendAuthRescue(requestAuthRescue).subscribe((res: any) => {
       if (!res) {
         toast.error("Gửi lại mã OTP không thành công");
       }
@@ -87,7 +92,7 @@ export class VerifyOtpPage implements OnInit {
       token: this.otp,
     };
 
-    this.authAccessService.validateOtp(verifyAuthRescue).subscribe((res: any) => {
+    this.authService.validateAuthRescue(verifyAuthRescue).subscribe((res: any) => {
       if (!res || res.error) {
         toast.error("Xác thực OTP không thành công");
         return;
@@ -105,7 +110,7 @@ export class VerifyOtpPage implements OnInit {
     const requestForgotPassword: RequestForgotPassword = {
       identifier: this.userResidual.phoneNumber,
     };
-    this.authAccessService.forgotPasswordInApp(requestForgotPassword).subscribe((res: any) => {
+    this.authService.forgotPasswordInApp(requestForgotPassword).subscribe((res: any) => {
       if (!res || res.error) {
         toast.error("Xác thực OTP không thành công");
         return;
@@ -116,9 +121,9 @@ export class VerifyOtpPage implements OnInit {
   }
 
   register() {
-    this.authAccessService.register(this.userResidual.phoneNumber, this.userResidual.name).subscribe((res: any) => {
+    this.authService.register(this.userResidual.phoneNumber, this.userResidual.name).subscribe((res: any) => {
       if (res?.user) {
-        this.authAccessService.login(this.userResidual.phoneNumber, "password123").subscribe((loginRes: any) => {
+        this.authService.login(this.userResidual.phoneNumber, "password123").subscribe((loginRes: any) => {
           if (loginRes.error) {
             // this.utilsModal.presentCusToast(loginRes.message);
             return;

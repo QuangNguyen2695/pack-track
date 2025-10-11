@@ -13,6 +13,7 @@ import { CameraBarcode } from "../../../plugin/CameraXScanner";
 import { Filesystem } from "@capacitor/filesystem";
 import { KeepAwake } from "@capacitor-community/keep-awake";
 import { ENV } from "src/environments/environment.development";
+import { CapsService } from "@rsApp/shared/services/caps-service/caps.service";
 
 type RecState = "idle" | "previewing" | "starting" | "recording" | "stopping";
 
@@ -93,6 +94,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     private videoCacheService: VideoCacheService,
     private toastCtl: ToastController,
     private alertCtl: AlertController,
+    public caps: CapsService,
   ) {}
 
   ngOnInit(): void {
@@ -419,7 +421,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       this.torchOn = newTorchState;
       // Feedback cho user
     } catch (error) {
-
       // Reset torch state về false nếu có lỗi
       this.torchOn = false;
 

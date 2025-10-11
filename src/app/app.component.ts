@@ -1,17 +1,17 @@
-import { Component, HostListener, OnInit } from '@angular/core';
-import { Platform } from '@ionic/angular';
-import { StatusBar, Style } from '@capacitor/status-bar';
-import { Router } from '@angular/router';
-import { AuthAccessService } from './shared/services/auth-access-service/auth-access.service';
-import { CredentialService } from './shared/services/credential-service/credential.service';
-import { VideoCacheService } from './shared/services/video-cache/video-cache.service';
-import { SyncProgressService } from './shared/services/sync-progress/sync-progress.service';
-import { Utils } from './shared/utils/utils';
+import { Component, HostListener, OnInit } from "@angular/core";
+import { Platform } from "@ionic/angular";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { Router } from "@angular/router";
+import { CredentialService } from "./shared/services/credential-service/credential.service";
+import { VideoCacheService } from "./shared/services/video-cache/video-cache.service";
+import { SyncProgressService } from "./shared/services/sync-progress/sync-progress.service";
+import { Utils } from "./shared/utils/utils";
+import { AdmobService } from "./shared/services/admob-service/dmob.service";
 
 @Component({
-  selector: 'app-root',
-  templateUrl: 'app.component.html',
-  styleUrls: ['app.component.scss'],
+  selector: "app-root",
+  templateUrl: "app.component.html",
+  styleUrls: ["app.component.scss"],
   standalone: false,
 })
 export class AppComponent implements OnInit {
@@ -20,31 +20,34 @@ export class AppComponent implements OnInit {
   constructor(
     private platform: Platform,
     public utils: Utils,
-    private authAccessService: AuthAccessService,
     private credentialService: CredentialService,
     private videoCacheService: VideoCacheService,
     private syncProgressService: SyncProgressService,
-    private router: Router
+    private router: Router, // private ads: AdmobService,
   ) {
     this.initializeApp();
   }
 
-  ngOnInit() {
+  async ngOnInit() {
     this.checkScreenSize();
+    // await this.ads.init();
+    // await this.ads.showBanner(true); // banner dưới
+    // await this.ads.preloadInterstitial(); // nạp sẵn
+    // await this.ads.preloadRewarded(); // nạp sẵn
   }
 
   async initializeApp() {
     const currentUser = await this.credentialService.getCurrentUser();
     this.currentUser = currentUser;
-    
-    if (this.platform.is('cordova') || this.platform.is('capacitor')) {
-      console.log('Chạy trên thiết bị di động');
+
+    if (this.platform.is("cordova") || this.platform.is("capacitor")) {
+      console.log("Chạy trên thiết bị di động");
       // Làm cho thanh status bar trong suốt
       StatusBar.setOverlaysWebView({ overlay: true });
       StatusBar.setStyle({ style: Style.Default });
-      StatusBar.setBackgroundColor({ color: '#00000000' });
+      StatusBar.setBackgroundColor({ color: "#00000000" });
     } else {
-      console.log('Chạy trên trình duyệt');
+      console.log("Chạy trên trình duyệt");
     }
 
     // Auto-sync cached videos khi app khởi động
@@ -58,29 +61,29 @@ export class AppComponent implements OnInit {
     try {
       // Kiểm tra số lượng video chưa đồng bộ
       const pendingCount = await this.videoCacheService.getPendingSyncCount();
-      
+
       if (pendingCount > 0) {
         console.log(`Found ${pendingCount} cached videos to sync`);
-        
+
         // Hiển thị progress widget ngay lập tức
         this.syncProgressService.showProgress();
-        
+
         // Delay một chút để app khởi động hoàn toàn trước khi sync
         setTimeout(async () => {
           try {
             await this.videoCacheService.syncWithLoading();
-            console.log('Auto-sync completed successfully');
+            console.log("Auto-sync completed successfully");
           } catch (error) {
-            console.error('Auto-sync failed:', error);
+            console.error("Auto-sync failed:", error);
           }
         }, 1000); // Delay 3 giây
       }
     } catch (error) {
-      console.error('Failed to check pending sync count:', error);
+      console.error("Failed to check pending sync count:", error);
     }
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener("window:resize", ["$event"])
   onResize(event: any) {
     this.checkScreenSize();
   }
@@ -91,13 +94,13 @@ export class AppComponent implements OnInit {
   }
 
   setScrollbarCss() {
-    const styleId = 'dynamic-scrollbar-style'; // Unique ID for the style element
+    const styleId = "dynamic-scrollbar-style"; // Unique ID for the style element
 
     if (!this.utils.isApp) {
       // Add styles dynamically
       let style = document.getElementById(styleId);
       if (!style) {
-        style = document.createElement('style');
+        style = document.createElement("style");
         style.id = styleId;
         style.innerHTML = `
                 /* width */

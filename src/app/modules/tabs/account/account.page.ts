@@ -3,7 +3,7 @@ import { Component, ElementRef, OnInit } from "@angular/core";
 import { FormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
 import { IonicModule } from "@ionic/angular";
-import { AuthAccessService } from "@rsApp/shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "@rsApp/shared/services/auth-service/auth.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 
 @Component({
@@ -19,7 +19,7 @@ export class AccountPage implements OnInit {
   constructor(
     private credentialService: CredentialService,
     private router: Router,
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private nativeComponent: ElementRef,
   ) {
     this.componentElement = this.nativeComponent.nativeElement;
@@ -46,7 +46,7 @@ export class AccountPage implements OnInit {
       phoneNumber: this.currentUser.phoneNumber,
       name: this.currentUser.name,
     });
-    await this.authAccessService.logout();
+    await this.authService.logout();
     this.router.navigateByUrl(`/auth-access`);
   }
 }

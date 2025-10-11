@@ -1,9 +1,10 @@
 import { Component, OnInit } from "@angular/core";
 import { FormBuilder, FormGroup, Validators } from "@angular/forms";
 import { Router } from "@angular/router";
-import { AuthAccessService } from "../../../../shared/services/auth-access-service/auth-access.service";
+import { AuthService } from "../../../../shared/services/auth-service/auth.service";
 import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { Utils } from "@rsApp/shared/utils/utils";
+import { RequestAuthRescue } from "../../model/auth.model";
 
 @Component({
   selector: "app-verify-name",
@@ -16,7 +17,7 @@ export class VerifyNamePage implements OnInit {
   userResidual!: any;
 
   constructor(
-    private authAccessService: AuthAccessService,
+    private authService: AuthService,
     private router: Router,
     private fb: FormBuilder,
     private credentialService: CredentialService,
@@ -66,7 +67,12 @@ export class VerifyNamePage implements OnInit {
   }
 
   sendOtp(name: string) {
-    this.authAccessService.sendOtp(this.userResidual.phoneNumber).subscribe(async (res: any) => {
+    const requestAuthRescue: RequestAuthRescue = {
+      identifier: this.userResidual.phoneNumber,
+      purpose: "2fa",
+    };
+
+    this.authService.sendAuthRescue(requestAuthRescue).subscribe(async (res: any) => {
       const userResidual = {
         phoneNumber: this.userResidual.phoneNumber,
         name: name,
