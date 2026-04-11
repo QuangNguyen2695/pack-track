@@ -1,12 +1,127 @@
+/* Tailwind CSS v4 - CSS-first configuration */
 @import "tailwindcss";
 @import "tailwindcss-animated";
 
+/* Theme configuration - Dynamic với CSS Variables */
 @theme {
-  --color-primary: #04aca3;
-  --color-primary-500: #07746e;
-  --color-secondary: #ffc62f;
-  --color-tertiary: #fd7e14;
+  /* Fonts */
+  --font-poppins: Poppins, system-ui, sans-serif !important;
+
+  /* Brand colors - reference CSS variables (dynamic) */
+  --color-primary: var(--app-primary);
+  --color-primary-foreground: var(--app-primary-foreground);
+  --color-secondary: var(--app-secondary);
+  --color-secondary-foreground: var(--app-secondary-foreground);
+
+  /* State colors */
+  --color-success: var(--app-success);
+  --color-warning: var(--app-warning);
+  --color-danger: var(--app-danger);
+  --color-info: var(--app-info);
+
+  /* Neutral colors */
+  --color-background: var(--app-background);
+  --color-foreground: var(--app-foreground);
+  --color-muted: var(--app-muted);
+  --color-border: var(--app-border);
+
+  /* Shadows */
   --shadow-bottom: 0px 15px 10px -15px rgba(0, 0, 0, 0.3);
   --shadow-top: 0px -15px 10px -15px rgba(0, 0, 0, 0.3);
   --shadow-round: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+}
+
+/* Base layer - Default theme values (fallback) */
+@layer base {
+  :root {
+    /* App theme variables - Default values */
+    --app-primary: #04aca3;
+    --app-primary-foreground: #ffffff;
+    --app-secondary: #07746e;
+    --app-secondary-foreground: #ffffff;
+
+    /* State colors */
+    --app-success: #16a34a;
+    --app-warning: #f59e0b;
+    --app-danger: #dc2626;
+    --app-info: #3b82f6;
+
+    /* Neutral colors */
+    --app-background: #ffffff;
+    --app-foreground: #0c1420;
+    --app-muted: #f1f5f9;
+    --app-border: #e2e8f0;
+
+    /* Legacy variables for backward compatibility */
+    --background: var(--app-background);
+    --foreground: var(--app-foreground);
+    --primary: var(--app-primary);
+    --secondary: var(--app-secondary);
+    --muted: var(--app-muted);
+    --border: var(--app-border);
+    --destructive: var(--app-danger);
+    --destructive-foreground: #fafafa;
+    --card: #f1f5f9;
+    --card-foreground: #000000;
+    --input-border: var(--app-border);
+    --ring: var(--app-primary);
+    --radius: 0.5rem;
+
+    /* Ionic color mapping */
+    --ion-color-primary: var(--app-primary);
+    --ion-color-primary-rgb: 4, 172, 163;
+    --ion-color-primary-contrast: var(--app-primary-foreground);
+    --ion-color-primary-contrast-rgb: 255, 255, 255;
+    --ion-color-primary-shade: #03968d;
+    --ion-color-primary-tint: #1db5ac;
+
+    --ion-color-secondary: var(--app-secondary);
+    --ion-color-secondary-rgb: 7, 116, 110;
+    --ion-color-secondary-contrast: var(--app-secondary-foreground);
+    --ion-color-secondary-contrast-rgb: 255, 255, 255;
+
+    --ion-color-success: var(--app-success);
+    --ion-color-success-rgb: 22, 163, 74;
+    --ion-color-success-contrast: #ffffff;
+    --ion-color-success-contrast-rgb: 255, 255, 255;
+
+    --ion-color-warning: var(--app-warning);
+    --ion-color-warning-rgb: 245, 158, 11;
+    --ion-color-warning-contrast: #000000;
+    --ion-color-warning-contrast-rgb: 0, 0, 0;
+
+    --ion-color-danger: var(--app-danger);
+    --ion-color-danger-rgb: 220, 38, 38;
+    --ion-color-danger-contrast: #ffffff;
+    --ion-color-danger-contrast-rgb: 255, 255, 255;
+
+    --ion-background-color: var(--app-background);
+    --ion-text-color: var(--app-foreground);
+  }
+
+  /* Dark mode (optional - uncomment nếu cần) */
+  /* .dark {
+    --background: #0c1420;
+    --foreground: #ffffff;
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+    --primary: #06d6a0;
+    --primary-foreground: #0c1420;
+    --border: #334155;
+  } */
+}
+
+/* Custom utilities - có thể dùng @apply */
+@layer utilities {
+  .container-custom {
+    @apply mx-auto px-4 max-w-7xl;
+  }
+
+  .glass-effect {
+    @apply bg-white/80 backdrop-blur-lg border border-white/20;
+  }
+
+  .shadow-primary {
+    box-shadow: 0 4px 12px rgba(4, 172, 163, 0.15);
+  }
 }

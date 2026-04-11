@@ -1,3 +1,7 @@
-export const environment = {
-  production: true
-};
+import { Environment } from "./environment.model";
+
+export class environment extends Environment {
+  public override production: boolean = true;
+}
+
+export const ENV: Environment = new environment();

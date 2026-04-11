@@ -11,7 +11,7 @@ import { Utils } from "@rsApp/shared/utils/utils";
   standalone: false,
 })
 export class TabsPage {
-  @ViewChild("tabs", { static: true }) tabs: IonTabs | undefined;
+  @ViewChild("tabs", { static: false }) tabs: IonTabs | undefined;
   routerOutletTabs: IonRouterOutlet | undefined;
 
   last_component: HTMLElement | undefined;
@@ -26,26 +26,27 @@ export class TabsPage {
   ) {}
 
   ngAfterViewInit(): void {
-    this.routerOutletTabs = this.tabs && this.tabs.outlet;
+    this.routerOutletTabs = this.tabs?.outlet;
 
-    this.routerOutletTabs &&
+    if (this.routerOutletTabs) {
       this.routerOutletTabs.activateEvents.subscribe((e: any) => {
         const prevUrl = this.previousRouteService.getPreviousUrl();
 
         if (!this.last_component) {
           this.last_component = e.componentElement;
-          this.last_component_index = this.routerOutletTabs && this.routerOutletTabs.activatedRouteData["index"];
+          this.last_component_index = this.routerOutletTabs?.activatedRouteData["index"];
           return;
         }
 
         if (!prevUrl.includes("tabs")) {
-          this.last_component.classList.remove("toRight");
-          this.last_component.classList.remove("toLeft");
-
+          // this.last_component.classList.remove("toRight");
+          // this.last_component.classList.remove("toLeft");
+          e.componentElement.classList.add("toRight");
+          e.componentElement.classList.remove("toLeft");
           return;
         }
 
-        const data_router = this.routerOutletTabs && this.routerOutletTabs.activatedRouteData;
+        const data_router = this.routerOutletTabs?.activatedRouteData;
 
         if (this.last_component_index != null && this.last_component_index < data_router?.["index"]) {
           this.last_component && this.last_component.classList.add("toLeft");
@@ -62,6 +63,8 @@ export class TabsPage {
         this.last_component = e.componentElement;
         this.last_component_index = data_router?.["index"];
       });
+    } else {
+    }
   }
 
   navigateForward(tab: string) {

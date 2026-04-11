@@ -1,0 +1,132 @@
+/* AppCheck Failed Modal - Simple & Clean */
+::ng-deep {
+  .app-check-failed-modal {
+    .alert-wrapper {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+      max-width: 360px;
+    }
+
+    .alert-head {
+      background: white;
+      color: #333;
+      font-size: 18px;
+      font-weight: 700;
+      padding: 20px 24px !important;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid var(--ion-color-primary);
+    }
+
+    .alert-message {
+      color: #444;
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 24px !important;
+      text-align: center;
+    }
+
+    .alert-button-group {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 0 !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      border-top: 1px solid #eee;
+    }
+
+    button {
+      flex: 1 !important;
+      font-weight: 600 !important;
+      border-radius: 0 !important;
+      padding: 14px 24px !important;
+      font-size: 15px !important;
+      color: white !important;
+      background: var(--ion-color-primary) !important;
+      border: none !important;
+      margin: 0 !important;
+      min-height: 48px !important;
+      transition: all 0.2s ease !important;
+
+      &:active {
+        opacity: 0.85;
+        background: #038a83 !important;
+      }
+
+      &:hover {
+        background: #038a83 !important;
+      }
+    }
+
+    .alert-button {
+      border: none !important;
+      margin: 0 !important;
+
+      &:not(:last-child) {
+        border-bottom: 1px solid #eee;
+      }
+    }
+  }
+
+  /* Backdrop */
+  .app-check-failed-modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+    z-index: 9998 !important;
+  }
+
+  /* Block app interaction */
+  ion-app.appcheck-failed {
+    pointer-events: none;
+  }
+
+  body.appcheck-failed {
+    overflow: hidden !important;
+    pointer-events: none !important;
+
+    ion-app {
+      pointer-events: all !important;
+
+      > * {
+        pointer-events: none !important;
+      }
+
+      .app-check-failed-modal {
+        pointer-events: all !important;
+
+        * {
+          pointer-events: all !important;
+        }
+      }
+    }
+  }
+
+  /* Mobile responsive */
+  @media (max-width: 480px) {
+    .app-check-failed-modal {
+      .alert-wrapper {
+        max-width: calc(100vw - 32px);
+      }
+
+      .alert-head {
+        font-size: 16px;
+        padding: 16px 20px !important;
+      }
+
+      .alert-message {
+        font-size: 14px;
+        padding: 16px 20px !important;
+      }
+
+      button {
+        font-size: 14px !important;
+        padding: 12px 20px !important;
+        min-height: 44px !important;
+      }
+    }
+  }
+}
+
+

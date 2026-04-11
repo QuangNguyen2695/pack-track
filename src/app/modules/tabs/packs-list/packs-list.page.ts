@@ -1,99 +1,153 @@
-import { Component, OnDestroy, OnInit } from "@angular/core";
+import { Component, ElementRef, OnDestroy, OnInit } from "@angular/core";
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { NzTableQueryParams, NzTableSortOrder } from "ng-zorro-antd/table";
 import { Subject, debounceTime, from, switchMap, take, takeUntil, tap, catchError, of } from "rxjs";
 import * as moment from "moment";
 import { PackDoc, PackListQuery, PackStatus, SearchPacksResult } from "@rsApp/shared/models/pack.model";
 import { PackService } from "@rsApp/shared/services/pack-service/pack.service";
-import { VideoCacheService } from "@rsApp/shared/services/video-cache/video-cache.service";
+import { AdmobService } from "@rsApp/shared/services/admob-service/dmob.service";
+import { SettingsService } from "@rsApp/shared/services/settings/settings.service";
 import { CommonModule } from "@angular/common";
 import { NZModule } from "@rsApp/library-modules/nz-module";
 import { IonicModule } from "@ionic/angular";
 import { ScrollingModule } from "@angular/cdk/scrolling";
 import { DeviceInfoService } from "@rsApp/shared/services/device/device-info.service";
+import { VideoRecoveryService } from "@rsApp/shared/services/video-recovery/video-recovery.service";
 import { Router } from "@angular/router";
 import { toast } from "ngx-sonner";
+import { NativeAdDisplayComponent } from "@rsApp/shared/components/native-ad-display/native-ad-display.component";
+import { AffiliateService } from "@rsApp/shared/services/affiliate-service/affiliate.service";
+import { AffiliateItem, AffiliatePack, AffiliateSingleProduct } from "@rsApp/shared/services/affiliate-service/affiliate.model";
 
 type SortOpt = "newest" | "oldest" | "duration_desc" | "duration_asc";
-type StatusValueStr = "Tất cả" | "Verified" | "Failed";
 
 @Component({
   selector: "app-packs-list",
   templateUrl: "./packs-list.page.html",
   styleUrls: ["./packs-list.page.scss"],
-  imports: [CommonModule, FormsModule, IonicModule, NZModule, ReactiveFormsModule, ScrollingModule],
+  imports: [CommonModule, FormsModule, IonicModule, NZModule, ReactiveFormsModule, ScrollingModule, NativeAdDisplayComponent],
 })
 export class PacksListPage implements OnInit, OnDestroy {
   form!: FormGroup;
 
-  searchPacks: SearchPacksResult<PackDoc> = { packs: [], pageIdx: 1, totalItem: 0, totalPage: 0 };
+  // Separate search results for normal and return videos
+  searchPacksNormal: SearchPacksResult<PackDoc> = { packs: [], pageIdx: 1, totalItem: 0, totalPage: 0 };
+  searchPacksReturn: SearchPacksResult<PackDoc> = { packs: [], pageIdx: 1, totalItem: 0, totalPage: 0 };
+  activeTab: "normal" | "return" = "normal"; // Track active tab
 
-  searchParams = {
+  // Separate search params for normal videos
+  searchParamsNormal = {
     pageIdx: 1,
     startDate: "" as Date | "",
     endDate: "" as Date | "",
-    pageSize: 5,
+    pageSize: 10,
     keyword: "",
     sortBy: {
       key: "createdAt",
       value: "descend",
     },
-    filters: {
-      key: "",
-      value: [],
+  };
+
+  // Separate search params for return videos
+  searchParamsReturn = {
+    pageIdx: 1,
+    startDate: "" as Date | "",
+    endDate: "" as Date | "",
+    pageSize: 10,
+    keyword: "",
+    sortBy: {
+      key: "createdAt",
+      value: "descend",
     },
   };
 
   loading = false;
   loadingMore = false;
-  reachedEnd = false;
+  recoveryInProgress = false;
+  reachedEndNormal = false; // Reached end for normal videos
+  reachedEndReturn = false; // Reached end for return videos
 
-  currentStatusStr: StatusValueStr = "Tất cả"; // for UI tabs
-  ownerIdSet = new Set<string>(); // set các pack _id thuộc thiết bị hiện tại
+  // Selected videos for bulk delete
+  selectedVideoIds = new Set<string>(); // Track selected video IDs
+
+  // Separate owner sets for each tab
+  ownerIdSetNormal = new Set<string>(); // set các pack _id thuộc thiết bị hiện tại (normal videos)
+  ownerIdSetReturn = new Set<string>(); // set các pack _id thuộc thiết bị hiện tại (return videos)
   // filters
-  statusTabs: string[] = ["Tất cả", "Verified", "Failed"];
   sortOpt: SortOpt = "newest";
 
   private reload$ = new Subject<void>();
   private destroy$ = new Subject<void>();
 
   currentDeviceId: string | null = null;
+  componentElement: HTMLElement | undefined;
+  userType: "seller" | "buyer" = "seller"; // Track user type for conditional display
+
+  // Affiliate item display
+  affiliateItem: AffiliateItem | null = null;
+  affiliateDisplayIndex: number = -1; // Track at which index to show affiliate item
+
+  nativeAds: Record<number, any> = {};
 
   constructor(
     private fb: FormBuilder,
     private packService: PackService,
-    private videoCacheService: VideoCacheService,
     private deviceInfo: DeviceInfoService,
     private router: Router,
-  ) {}
+    private nativeComponent: ElementRef,
+    private ads: AdmobService,
+    private videoRecoveryService: VideoRecoveryService,
+    private settingsService: SettingsService,
+    private affiliateService: AffiliateService,
+  ) {
+    this.componentElement = this.nativeComponent.nativeElement;
+  }
 
   ngOnInit(): void {
+    // Load user type from settings
+    this.settingsService.settings$.pipe(takeUntil(this.destroy$)).subscribe((settings) => {
+      this.userType = settings.userType;
+      console.log("👤 [PacksList] User type loaded:", this.userType);
+    });
+
+    // Initialize current device ID
+    this.deviceInfo
+      .getDeviceInfo()
+      .then((info) => {
+        this.currentDeviceId = info.deviceId;
+        console.log("📱 [PacksList] Current device ID:", this.currentDeviceId);
+      })
+      .catch((err) => {
+        console.error("❌ [PacksList] Failed to get device info:", err);
+      });
+
     this.form = this.fb.group({
       status: [null], // PackStatus | null (cho API)
       date: [null as Date | null], // Đổi từ dateRange thành date
       keyword: [""],
     });
 
-    from(this.deviceInfo.getDeviceInfo())
-      .pipe(take(1))
-      .subscribe((dev) => {
-        this.currentDeviceId = (dev?.deviceId ?? "").trim();
-        console.log("🚀 ~ PacksListPage ~ ngOnInit ~ this.currentDeviceId:", this.currentDeviceId)
-        // nếu đã có data items, có thể build ownerIdSet ở đây
-      });
+    // Auto-search khi form changes (với debounce)
+    this.form.valueChanges
+      .pipe(
+        takeUntil(this.destroy$),
+        debounceTime(600), // Chờ 600ms sau khi user stop typing
+        tap(() => this.onSearch()),
+      )
+      .subscribe();
 
-    // debounce search/date/keyword change
-    this.form.valueChanges.pipe(debounceTime(250), takeUntil(this.destroy$)).subscribe(() => this.onSearch());
-
-    // initial load pipeline
+    // initial load pipeline - load BOTH tabs simultaneously
     this.reload$
       .pipe(
         takeUntil(this.destroy$),
         tap(() => (this.loading = true)),
-        switchMap(() => this.fetchPage(false)),
+        switchMap(() => this.fetchBothTabs()),
       )
       .subscribe({
-        next: () => (this.loading = false),
+        next: () => {
+          this.loading = false;
+          this.loadRandomAffiliateItem(); // Load affiliate item after data loads
+        },
         error: () => (this.loading = false),
       });
 
@@ -105,40 +159,192 @@ export class PacksListPage implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
+  /**
+   * Load random affiliate item to display in the list
+   */
+  private loadRandomAffiliateItem(): void {
+    if (this.affiliateService.isReady()) {
+      this.affiliateItem = this.affiliateService.getRandomItem();
+      if (this.affiliateItem) {
+        // Set random display index (0-5) so affiliate appears randomly in the list
+        this.affiliateDisplayIndex = Math.floor(Math.random() * 6);
+        console.log("🛍️ [PacksList] Loaded affiliate item at display index:", this.affiliateDisplayIndex, this.affiliateItem);
+      }
+    }
+  }
+
+  /**
+   * Load affiliate item for newly loaded batch (load more scenario)
+   * Display it randomly within the newly loaded items instead of from top
+   */
+  private loadAffiliateForLoadMore(): void {
+    if (this.affiliateService.isReady()) {
+      this.affiliateItem = this.affiliateService.getRandomItem();
+      if (this.affiliateItem) {
+        // Calculate the starting index of newly loaded items
+        const pageSize = this.searchParamsNormal.pageSize; // or pageSize from search params
+        const totalItemsBeforeNewBatch = this.currentSearchPacks.packs.length - pageSize;
+        
+        // Set random display index within the newly loaded batch (0-9 within the new page)
+        const randomOffsetInBatch = Math.floor(Math.random() * Math.min(10, pageSize)); // Show within first 10 of new batch
+        this.affiliateDisplayIndex = Math.max(0, totalItemsBeforeNewBatch + randomOffsetInBatch);
+        
+        console.log("🛍️ [PacksList] Loaded affiliate item for LoadMore at index:", this.affiliateDisplayIndex, "Batch starts at:", totalItemsBeforeNewBatch, this.affiliateItem);
+      }
+    }
+  }
+
+  /**
+   * Check if affiliate item is a pack (contains multiple products)
+   */
+  isAffiliatePack(item: AffiliateItem | null): item is AffiliatePack {
+    return item !== null && item.type === "pack";
+  }
+
+  /**
+   * Check if affiliate item is a single product
+   */
+  isAffiliateSingleProduct(item: AffiliateItem | null): item is AffiliateSingleProduct {
+    return item !== null && item.type === "product";
+  }
+
+  /**
+   * Get primary link for affiliate item
+   */
+  getAffiliateLink(item: AffiliateItem | null): string {
+    if (!item) return "";
+    
+    // For pack: get link from first product
+    if (this.isAffiliatePack(item)) {
+      const firstProduct = item.products?.[0];
+      if (firstProduct?.links && firstProduct.links.length > 0) {
+        return firstProduct.links[0];
+      }
+    } 
+    // For single product: get link directly
+    else if (this.isAffiliateSingleProduct(item)) {
+      if (item.links && item.links.length > 0) {
+        return item.links[0];
+      }
+    }
+    
+    return "";
+  }
+
+  /**
+   * Get title for affiliate item (pack or product name)
+   */
+  getAffiliateTitle(item: AffiliateItem | null): string {
+    if (!item) return "";
+    if (this.isAffiliatePack(item)) {
+      return item.title;
+    } else if (this.isAffiliateSingleProduct(item)) {
+      return item.name;
+    }
+    return "";
+  }
+
+  /**
+   * Get image for affiliate item
+   */
+  getAffiliateImage(item: AffiliateItem | null): string {
+    if (!item) return "";
+    if (this.isAffiliatePack(item)) {
+      return item.thumbnail;
+    } else if (this.isAffiliateSingleProduct(item)) {
+      return item.image;
+    }
+    return "";
+  }
+
+  /**
+   * Open affiliate link in new tab
+   */
+  openAffiliateLink(item: AffiliateItem | null): void {
+    const link = this.getAffiliateLink(item);
+    if (link) {
+      window.open(link, "_blank");
+      console.log("🔗 [PacksList] Opened affiliate link:", link);
+    }
+  }
+
+  /**
+   * Check if affiliate item should be displayed at this index
+   */
+  shouldShowAffiliateAtIndex(index: number): boolean {
+    return this.affiliateDisplayIndex === index;
+  }
+
   // Refresh every time the tab becomes active
-  ionViewWillEnter() {
+  async ionViewWillEnter() {
     // Use existing reload pipeline so loading state is handled consistently
+    console.log("👋 [PacksList] Leaving page - showing ads");
     this.reload$.next();
+  }
+
+  // Kiểm tra và hiển thị quảng cáo khi rời khỏi page
+  async ionViewWillLeave() {
+    // Also try to show reward ad
+    await this.ads.checkAndShowRewardAd();
+  }
+
+  // Pull-to-Refresh handler
+  async onRefresh(event: any) {
+    try {
+      this.searchParamsNormal.pageIdx = 1;
+      this.searchParamsReturn.pageIdx = 1;
+      this.reachedEndNormal = false;
+      this.reachedEndReturn = false;
+      this.searchParamsNormal.pageSize = 10;
+      this.searchParamsReturn.pageSize = 10;
+      this.searchPacksNormal.totalItem = 0; // Reset total items
+      this.searchPacksReturn.totalItem = 0; // Reset total items
+
+      // Wait for reload to complete
+      await this.fetchBothTabs().toPromise();
+    } catch (error) {
+      console.error("Refresh failed:", error);
+    } finally {
+      // Complete the refresh animation
+      event.detail.complete();
+    }
   }
 
   rebuildOwnerSet() {
     if (!this.currentDeviceId) return;
 
-    const ownedPacks = (this.searchPacks.packs ?? []).filter((pack) => {
+    // Rebuild for normal videos
+    const normalOwnedPacks = (this.searchPacksNormal.packs ?? []).filter((pack) => {
       const packWithCache = pack as PackDoc & { _isCached?: boolean };
-
-      // Cached packs luôn thuộc về device hiện tại
       if (packWithCache._isCached) return true;
-
-      // API packs kiểm tra theo deviceId
       return (pack.deviceId ?? "").trim() === this.currentDeviceId;
     });
+    this.ownerIdSetNormal = new Set(normalOwnedPacks.map((x) => x._id));
 
-    this.ownerIdSet = new Set(ownedPacks.map((x) => x._id));
+    // Rebuild for return videos
+    const returnOwnedPacks = (this.searchPacksReturn.packs ?? []).filter((pack) => {
+      const packWithCache = pack as PackDoc & { _isCached?: boolean };
+      if (packWithCache._isCached) return true;
+      return (pack.deviceId ?? "").trim() === this.currentDeviceId;
+    });
+    this.ownerIdSetReturn = new Set(returnOwnedPacks.map((x) => x._id));
   }
 
   // ---------- Actions ----------
-  onSearch(): void {
-    this.searchParams.pageIdx = 1;
-    this.reachedEnd = false;
-    this.reload$.next();
+  onTabChange(tab: "normal" | "return"): void {
+    this.activeTab = tab;
+    this.clearSelection(); // Clear selection when switching tabs
+    // Don't reload on tab change - data is already loaded from init
+    // Keep the existing reachedEnd flags as they should already be correctly set during fetchBothTabs()
+    console.log(`📑 [PacksList] Switched to ${tab === "normal" ? "🎥 Gói đơn" : "🔄 Trả hàng"} tab, data already preloaded`);
   }
 
-  onChangeStatus(segVal: StatusValueStr) {
-    this.currentStatusStr = segVal;
-    // map '' -> null để form gửi đúng kiểu cho API
-    const statusForApi = segVal === "Tất cả" ? null : (segVal as any);
-    this.form.patchValue({ status: statusForApi }, { emitEvent: true });
+  onSearch(): void {
+    this.searchParamsNormal.pageIdx = 1;
+    this.searchParamsReturn.pageIdx = 1;
+    this.reachedEndNormal = false;
+    this.reachedEndReturn = false;
+    this.reload$.next();
   }
 
   onChangeSort(opt: SortOpt) {
@@ -152,13 +358,124 @@ export class PacksListPage implements OnInit, OnDestroy {
     this.onSearch();
   }
 
+  onDateChange(date: any) {
+    console.log("📅 Date changed event:", date);
+    if (date) {
+      console.log("📅 Date toString():", date.toString());
+      console.log("📅 Date toISOString():", date.toISOString?.());
+      console.log("📅 Date type:", date.constructor?.name);
+
+      // Log local date components
+      if (date instanceof Date || date.toDate) {
+        const d = date instanceof Date ? date : date.toDate();
+        console.log("📅 Local components - Year:", d.getFullYear(), "Month:", d.getMonth() + 1, "Date:", d.getDate());
+      }
+    }
+    // Update form with the selected date
+    this.form.patchValue({ date }, { emitEvent: false });
+    // Trigger search after date selection
+    this.onSearch();
+  }
+
+  async forceRecoverySync() {
+    this.recoveryInProgress = true;
+
+    try {
+      const recoveredCount = await this.videoRecoveryService.manualRecovery();
+      // Refresh the list to show newly recovered videos
+      this.onSearch();
+    } catch (error) {
+    } finally {
+      this.recoveryInProgress = false;
+    }
+  }
+
+  // Toggle video selection
+  toggleVideoSelection(videoId: string, event?: any): void {
+    if (event) {
+      event.stopPropagation(); // Prevent card click when clicking checkbox
+    }
+    if (this.selectedVideoIds.has(videoId)) {
+      this.selectedVideoIds.delete(videoId);
+    } else {
+      this.selectedVideoIds.add(videoId);
+    }
+    console.log(`🎬 [PacksList] Selected videos:`, Array.from(this.selectedVideoIds));
+  }
+
+  // Check if video is selected
+  isVideoSelected(videoId: string): boolean {
+    return this.selectedVideoIds.has(videoId);
+  }
+
+  // Get count of selected videos
+  getSelectedCount(): number {
+    return this.selectedVideoIds.size;
+  }
+
+  // Delete selected videos
+  async deleteSelected(): Promise<void> {
+    if (this.selectedVideoIds.size === 0) return;
+
+    const confirmed = window.confirm(`Bạn chắc chắn muốn xóa ${this.selectedVideoIds.size} video không?`);
+    if (!confirmed) return;
+
+    try {
+      const videoIdsToDelete = Array.from(this.selectedVideoIds);
+      console.log(`🗑️ [PacksList] Deleting ${videoIdsToDelete.length} videos from ${this.activeTab} tab`);
+
+      // Call appropriate service method based on active tab
+      if (this.activeTab === "normal") {
+        console.log(`🎥 [PacksList] Calling removeNormalPacks()`);
+        await this.packService.removeNormalPacks(videoIdsToDelete).toPromise();
+      } else {
+        console.log(`🔄 [PacksList] Calling removeReturnVideos()`);
+        await this.packService.removeReturnVideos(videoIdsToDelete).toPromise();
+      }
+
+      // Clear selection
+      this.selectedVideoIds.clear();
+
+      // Refresh the list
+      this.onSearch();
+      toast.success(`Đã xóa ${videoIdsToDelete.length} video`);
+    } catch (error) {
+      console.error("❌ Delete failed:", error);
+      toast.error("Xóa video thất bại");
+    }
+  }
+
+  // Select all videos in current tab
+  selectAll(): void {
+    const currentVideos = this.currentSearchPacks.packs ?? [];
+    for (const video of currentVideos) {
+      this.selectedVideoIds.add(video._id);
+    }
+    console.log(`✅ [PacksList] Selected all ${currentVideos.length} videos in current tab`);
+  }
+
+  // Clear all selections
+  clearSelection(): void {
+    this.selectedVideoIds.clear();
+    console.log(`📋 [PacksList] Cleared all selections`);
+  }
+
   loadMore() {
-    if (this.reachedEnd || this.loadingMore) return;
+    if (this.isCurrentTabReachedEnd || this.loadingMore) return;
     this.loadingMore = true;
-    this.searchParams.pageIdx += 1;
+
+    // Get current page from active tab and increment
+    if (this.activeTab === "normal") {
+      this.searchParamsNormal.pageIdx += 1;
+    } else {
+      this.searchParamsReturn.pageIdx += 1;
+    }
+
     this.fetchPage(true).subscribe({
       next: () => {
         this.loadingMore = false;
+        // Load affiliate item for the newly loaded items
+        this.loadAffiliateForLoadMore();
       },
       error: () => {
         this.loadingMore = false;
@@ -167,84 +484,252 @@ export class PacksListPage implements OnInit, OnDestroy {
   }
 
   // ---------- Data ----------
-  private fetchPage(append: boolean) {
+  private fetchBothTabs() {
     this.setParamsSearch();
 
-    return this.packService.searchPacks(this.searchParams).pipe(
+    // Fetch both normal and return videos simultaneously
+    return this.packService.searchNormalPacks(this.searchParamsNormal).pipe(
+      switchMap(async (normalResult) => {
+        console.log(`🚀 [normal] Fetched normal videos on init:`, normalResult);
+        const sortedPacks = this.applySortToPacks(normalResult.packs);
+        this.searchPacksNormal = { ...normalResult, packs: sortedPacks };
+        // Check if reached end: total items >= totalItem, OR returned items < pageSize
+        const itemsReturnedLessThanPageSize = (normalResult.packs?.length ?? 0) < this.searchParamsNormal.pageSize;
+        this.reachedEndNormal = this.searchPacksNormal.packs.length >= normalResult.totalItem || itemsReturnedLessThanPageSize;
+        console.log(
+          `📊 [normal] reachedEndNormal: ${this.reachedEndNormal}, itemsNow: ${this.searchPacksNormal.packs.length}, totalItem: ${normalResult.totalItem}, itemsReturned: ${normalResult.packs?.length || 0}`,
+        );
+
+        // Now fetch return videos
+        return this.packService.searchReturnPacks(this.searchParamsReturn).toPromise();
+      }),
+      switchMap(async (returnResult) => {
+        console.log(`🚀 [return] Fetched return videos on init:`, returnResult);
+        if (returnResult) {
+          const sortedPacks = this.applySortToPacks(returnResult.packs);
+          this.searchPacksReturn = { ...returnResult, packs: sortedPacks };
+          // Check if reached end: total items >= totalItem, OR returned items < pageSize
+          const itemsReturnedLessThanPageSize = (returnResult.packs?.length ?? 0) < this.searchParamsReturn.pageSize;
+          this.reachedEndReturn = this.searchPacksReturn.packs.length >= returnResult.totalItem || itemsReturnedLessThanPageSize;
+          console.log(
+            `📊 [return] reachedEndReturn: ${this.reachedEndReturn}, itemsNow: ${this.searchPacksReturn.packs.length}, totalItem: ${returnResult.totalItem}, itemsReturned: ${returnResult.packs?.length || 0}`,
+          );
+        }
+        this.rebuildOwnerSet();
+        return Promise.resolve();
+      }),
+      catchError(async (error) => {
+        console.log(`🚀 Error fetching both tabs:`, error);
+        return Promise.resolve();
+      }),
+    );
+  }
+
+  private fetchPage(append: boolean) {
+    if (this.activeTab === "normal") {
+      return this.searchPacksNormalPage(append);
+    } else {
+      return this.searchPacksReturnPage(append);
+    }
+  }
+
+  private searchPacksNormalPage(append: boolean) {
+    return this.packService.searchNormalPacks(this.searchParamsNormal).pipe(
       switchMap(async (apiResult) => {
+        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ apiResult:`, apiResult);
         return this.processSearchResult(apiResult, append);
       }),
       catchError(async (error) => {
-        console.error("🚨 API Error in fetchPage:", error);
-        
-        // Nếu API fail, chỉ trả về cached data (cho page đầu tiên)
-        if (this.searchParams.pageIdx === 1) {
-          const cachedPacks = await this.getCachedVideosAsPackDocs();
-          console.log("🔄 Fallback to cached data:", cachedPacks);
-          
-          return {
-            packs: cachedPacks,
-            pageIdx: 1,
-            totalItem: cachedPacks.length,
-            totalPage: 1
-          } as SearchPacksResult<PackDoc>;
-        }
-        
-        // Cho page tiếp theo, trả về empty result
+        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ error:`, error);
         return {
           packs: [],
-          pageIdx: this.searchParams.pageIdx,
+          pageIdx: this.searchParamsNormal.pageIdx,
           totalItem: 0,
-          totalPage: 0
+          totalPage: 0,
         } as SearchPacksResult<PackDoc>;
       }),
       tap((res) => {
-        console.log("🚀 ~ PacksListPage ~ fetchPage ~ res:", res)
-        this.reachedEnd = this.searchParams.pageIdx >= res.totalPage;
+        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ res:`, res);
         if (res) {
           if (append) {
-            this.searchPacks.packs = [...this.searchPacks.packs, ...res.packs];
-            console.log("🚀 ~ PacksListPage ~ fetchPage ~ this.searchPacks.packs:", this.searchPacks.packs)
+            // Filter out duplicates based on _id before appending
+            const existingIds = new Set(this.searchPacksNormal.packs.map((p) => p._id));
+            const newPacks = res.packs.filter((p) => !existingIds.has(p._id));
+            console.log(
+              `🔍 [normal] Duplicate check: API returned ${res.packs.length}, after filter: ${newPacks.length} new items (${res.packs.length - newPacks.length} duplicates)`,
+            );
+            this.searchPacksNormal.packs = [...this.searchPacksNormal.packs, ...newPacks];
+            this.searchPacksNormal.pageIdx = res.pageIdx;
+            this.searchPacksNormal.totalItem = res.totalItem; // Update totalItem during append
           } else {
-            this.searchPacks = res;
+            this.searchPacksNormal = { ...res };
           }
+          console.log(`✅ [normal] Data updated:`, this.searchPacksNormal);
           this.rebuildOwnerSet();
         }
+        // Check if reached end: total items now >= totalItem, OR returned items < pageSize
+        const itemsReturnedLessThanPageSize = (res.packs?.length ?? 0) < this.searchParamsNormal.pageSize;
+        const totalItemsNow = this.searchPacksNormal.packs?.length ?? 0;
+        this.reachedEndNormal = totalItemsNow >= res.totalItem || itemsReturnedLessThanPageSize;
+        console.log(
+          `📊 [normal] reachedEndNormal: ${this.reachedEndNormal}, totalItemsNow: ${totalItemsNow}, totalItem: ${res.totalItem}, itemsReturned: ${res.packs?.length || 0}`,
+        );
+      }),
+    );
+  }
+
+  private searchPacksReturnPage(append: boolean) {
+    return this.packService.searchReturnPacks(this.searchParamsReturn).pipe(
+      switchMap(async (apiResult) => {
+        console.log(`🚀 [return] ~ searchPacksReturnPage ~ apiResult:`, apiResult);
+        return this.processSearchResult(apiResult, append);
+      }),
+      catchError(async (error) => {
+        console.log(`🚀 [return] ~ searchPacksReturnPage ~ error:`, error);
+        return {
+          packs: [],
+          pageIdx: this.searchParamsReturn.pageIdx,
+          totalItem: 0,
+          totalPage: 0,
+        } as SearchPacksResult<PackDoc>;
+      }),
+      tap((res) => {
+        console.log(`🚀 [return] ~ searchPacksReturnPage ~ res:`, res);
+        if (res) {
+          if (append) {
+            // Filter out duplicates based on _id before appending
+            const existingIds = new Set(this.searchPacksReturn.packs.map((p) => p._id));
+            const newPacks = res.packs.filter((p) => !existingIds.has(p._id));
+            console.log(
+              `🔍 [return] Duplicate check: API returned ${res.packs.length}, after filter: ${newPacks.length} new items (${res.packs.length - newPacks.length} duplicates)`,
+            );
+            this.searchPacksReturn.packs = [...this.searchPacksReturn.packs, ...newPacks];
+            this.searchPacksReturn.pageIdx = res.pageIdx;
+            this.searchPacksReturn.totalItem = res.totalItem; // Update totalItem during append
+          } else {
+            this.searchPacksReturn = { ...res };
+          }
+          console.log(`✅ [return] Data updated:`, this.searchPacksReturn);
+          this.rebuildOwnerSet();
+        }
+        // Check if reached end: total items now >= totalItem, OR returned items < pageSize
+        const itemsReturnedLessThanPageSize = (res.packs?.length ?? 0) < this.searchParamsReturn.pageSize;
+        const totalItemsNow = this.searchPacksReturn.packs?.length ?? 0;
+        this.reachedEndReturn = totalItemsNow >= res.totalItem || itemsReturnedLessThanPageSize;
+        console.log(
+          `📊 [return] reachedEndReturn: ${this.reachedEndReturn}, totalItemsNow: ${totalItemsNow}, totalItem: ${res.totalItem}, itemsReturned: ${res.packs?.length || 0}`,
+        );
       }),
     );
   }
 
   async processSearchResult(apiResult: SearchPacksResult<PackDoc>, append: boolean) {
-    // Lấy cached videos chỉ cho page đầu tiên
-    let cachedPacks: PackDoc[] = [];
-    if (this.searchParams.pageIdx === 1) {
-      cachedPacks = await this.getCachedVideosAsPackDocs();
-      console.log("🚀 ~ PacksListPage ~ processSearchResult ~ cachedPacks:", cachedPacks)
-    }
-
-    // Merge API data với cached data
-    const mergedPacks = this.mergePacks(apiResult.packs, cachedPacks);
-
     // Apply sort cho merged data
-    const sortedPacks = this.applySortToPacks(mergedPacks);
-
+    const sortedPacks = this.applySortToPacks(apiResult.packs);
     return {
       ...apiResult,
       packs: sortedPacks,
-      totalItem: apiResult.totalItem + cachedPacks.length,
+      totalItem: apiResult.totalItem,
     };
   }
 
   private setParamsSearch() {
     const f = this.form.value;
 
-    this.searchParams.pageIdx = 1;
-    this.searchParams.keyword = f.keyword || "";
-    // Sử dụng single date thay vì date range
-    this.searchParams.startDate = f.date || "";
-    this.searchParams.endDate = f.date || ""; // Cùng ngày cho start và end
-    this.searchParams.pageSize = 10;
-    this.searchParams.sortBy = this.getSortParam(this.sortOpt);
+    this.searchParamsNormal.pageIdx = 1;
+    this.searchParamsNormal.keyword = f.keyword?.trim() || "";
+    this.searchParamsReturn.pageIdx = 1;
+    this.searchParamsReturn.keyword = f.keyword?.trim() || "";
+
+    // Convert Dayjs date to ISO string for API (timezone aware)
+    if (f.date) {
+      try {
+        console.log("📅 Raw date from form:", f.date);
+        console.log("📅 Date type:", f.date?.constructor?.name);
+
+        if (f.date && typeof f.date === "object") {
+          let year = 0,
+            month = 0,
+            day = 0;
+          let dateStr = "";
+
+          // Handle Dayjs object
+          if (f.date.format && typeof f.date.format === "function") {
+            console.log("📅 Detected Dayjs object");
+            // For Dayjs, get the local date components directly
+            year = f.date.year();
+            month = f.date.month() + 1; // Dayjs month is 0-based
+            day = f.date.date();
+            dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            console.log("📅 Dayjs formatted (local):", dateStr, "year:", year, "month:", month, "day:", day);
+          }
+          // Handle native Date object
+          else if (f.date instanceof Date) {
+            console.log("📅 Detected native Date");
+            // For Date, get local date components
+            year = f.date.getFullYear();
+            month = f.date.getMonth() + 1;
+            day = f.date.getDate();
+            dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            console.log("📅 Date formatted (local):", dateStr, "year:", year, "month:", month, "day:", day);
+
+            // Extra debug: show what today's local date is
+            const now = new Date();
+            const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+            console.log("📅 Today's local date:", todayStr);
+          }
+
+          if (year > 0 && month > 0 && day > 0) {
+            // Create dates using LOCAL time (Constructor with 3+ args uses local time)
+            const startOfDay = new Date(year, month - 1, day, 0, 0, 0, 0);
+            const endOfDay = new Date(year, month - 1, day, 23, 59, 59, 999);
+
+            (this.searchParamsNormal.startDate as any) = startOfDay;
+            (this.searchParamsNormal.endDate as any) = endOfDay;
+            (this.searchParamsReturn.startDate as any) = startOfDay;
+            (this.searchParamsReturn.endDate as any) = endOfDay;
+
+            console.log("📅 ✅ Date range set (LOCAL):", {
+              formatted: dateStr,
+              startDate: startOfDay.toISOString(),
+              endDate: endOfDay.toISOString(),
+              startLocal: `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")} ${String(startOfDay.getHours()).padStart(2, "0")}:00:00`,
+              endLocal: `${endOfDay.getFullYear()}-${String(endOfDay.getMonth() + 1).padStart(2, "0")}-${String(endOfDay.getDate()).padStart(2, "0")} ${String(endOfDay.getHours()).padStart(2, "0")}:59:59`,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("❌ Error processing date:", error);
+        this.searchParamsNormal.startDate = "";
+        this.searchParamsNormal.endDate = "";
+        this.searchParamsReturn.startDate = "";
+        this.searchParamsReturn.endDate = "";
+      }
+    } else {
+      console.log("📅 No date selected, clearing filters");
+      this.searchParamsNormal.startDate = "";
+      this.searchParamsNormal.endDate = "";
+      this.searchParamsReturn.startDate = "";
+      this.searchParamsReturn.endDate = "";
+    }
+
+    this.searchParamsNormal.pageSize = 10;
+    this.searchParamsNormal.sortBy = this.getSortParam(this.sortOpt);
+    this.searchParamsReturn.pageSize = 10;
+    this.searchParamsReturn.sortBy = this.getSortParam(this.sortOpt);
+
+    console.log("🔍 Final search params (Normal):", {
+      keyword: this.searchParamsNormal.keyword,
+      startDate: this.searchParamsNormal.startDate,
+      endDate: this.searchParamsNormal.endDate,
+      sortBy: this.searchParamsNormal.sortBy,
+    });
+    console.log("🔍 Final search params (Return):", {
+      keyword: this.searchParamsReturn.keyword,
+      startDate: this.searchParamsReturn.startDate,
+      endDate: this.searchParamsReturn.endDate,
+      sortBy: this.searchParamsReturn.sortBy,
+    });
   }
 
   private getSortParam(opt: SortOpt): { key: string; value: string } {
@@ -263,6 +748,94 @@ export class PacksListPage implements OnInit, OnDestroy {
   }
 
   // ---------- UI helpers ----------
+  onThumbnailLoad(packId: string): void {
+    console.log(`✅ Thumbnail loaded for pack: ${packId}`);
+  }
+
+  onThumbnailError(packId: string, event: any): void {
+    console.error(`❌ Thumbnail failed for pack: ${packId}`, event);
+    event.target.style.display = "none";
+  }
+
+  /**
+   * Get count of normal videos from normal tab
+   */
+  getNormalVideoCount(): number {
+    const normalPacks = (this.searchPacksNormal.packs ?? []).filter((pack) => {
+      const packWithCache = pack as PackDoc & { _isCached?: boolean };
+      const isLocal = packWithCache._isCached || (pack.deviceId ?? "").trim() === this.currentDeviceId;
+      return isLocal;
+    });
+    console.log("🎥 [PacksList] Normal video count:", normalPacks.length, "from", this.searchPacksNormal.totalItem, "total items");
+    return normalPacks.length;
+  }
+
+  /**
+   * Get count of return videos from return tab
+   */
+  getReturnVideoCount(): number {
+    const returnPacks = (this.searchPacksReturn.packs ?? []).filter((pack) => {
+      const packWithCache = pack as PackDoc & { _isCached?: boolean };
+      const isLocal = packWithCache._isCached || (pack.deviceId ?? "").trim() === this.currentDeviceId;
+      return isLocal;
+    });
+    console.log("🔄 [PacksList] Return video count:", returnPacks.length, "from", this.searchPacksReturn.totalItem, "total items");
+    return returnPacks.length;
+  }
+
+  /**
+   * Get current tab's search packs
+   */
+  get currentSearchPacks(): SearchPacksResult<PackDoc> {
+    return this.activeTab === "normal" ? this.searchPacksNormal : this.searchPacksReturn;
+  }
+
+  /**
+   * Get current tab's owner set
+   */
+  get currentOwnerIdSet(): Set<string> {
+    return this.activeTab === "normal" ? this.ownerIdSetNormal : this.ownerIdSetReturn;
+  }
+
+  get isCurrentTabReachedEnd(): boolean {
+    return this.activeTab === "normal" ? this.reachedEndNormal : this.reachedEndReturn;
+  }
+
+  getThumbnailUrl(thumbnailBase64?: string, thumbnailUrl?: string): string {
+    if (!thumbnailBase64 && !thumbnailUrl) return "";
+
+    // Ưu tiên URL nếu có
+    if (thumbnailUrl && thumbnailUrl.startsWith("http")) {
+      console.log("📸 Using thumbnail URL:", thumbnailUrl?.substring(0, 50));
+      return thumbnailUrl;
+    }
+
+    // Nếu là base64
+    if (thumbnailBase64) {
+      try {
+        // Xử lý prefix nếu có
+        let b64 = thumbnailBase64.trim();
+
+        // Nếu đã có prefix, trả về ngay
+        if (b64.startsWith("data:image")) {
+          return b64;
+        }
+
+        // Nếu chưa có prefix, thêm vào
+        if (!b64.includes("base64,")) {
+          b64 = `data:image/jpeg;base64,${b64}`;
+          return b64;
+        }
+
+        return b64;
+      } catch (e) {
+        return "";
+      }
+    }
+
+    return "";
+  }
+
   fmtDuration(ms: number): string {
     const totalSec = Math.floor((ms || 0) / 1000);
     const h = Math.floor(totalSec / 3600);
@@ -304,20 +877,6 @@ export class PacksListPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Merge API packs với cached packs, tránh duplicate
-   */
-  private mergePacks(apiPacks: PackDoc[], cachedPacks: PackDoc[]): PackDoc[] {
-    // Filter cached packs để tránh duplicate với API data
-    // So sánh bằng orderCode và deviceId
-    const filteredCachedPacks = cachedPacks.filter((cachedPack) => {
-      return !apiPacks.some((apiPack) => apiPack.orderCode === cachedPack.orderCode && apiPack.deviceId === cachedPack.deviceId);
-    });
-
-    // Merge: cached packs đầu tiên (để hiển thị ở top), sau đó API packs
-    return [...filteredCachedPacks, ...apiPacks];
-  }
-
-  /**
    * Apply sort logic cho merged packs
    */
   private applySortToPacks(packs: PackDoc[]): PackDoc[] {
@@ -337,40 +896,7 @@ export class PacksListPage implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * Lấy cached videos và merge với API results
-   */
-  private async getCachedVideosAsPackDocs(): Promise<PackDoc[]> {
-    try {
-      const cachedVideos = await this.videoCacheService.getCachedVideos();
-
-      // Filter theo device hiện tại nếu cần
-      const filteredCached = cachedVideos.filter((video) => {
-        if (!this.currentDeviceId) return true;
-        return video.payload?.deviceId === this.currentDeviceId;
-      });
-
-      return filteredCached.map((video) => this.convertCachedVideoToPackDoc(video));
-    } catch (error) {
-      console.error("Failed to get cached videos:", error);
-      return [];
-    }
-  }
-
   openPackDetail(pack: PackDoc) {
-    const packWithCache = pack as PackDoc & { _isCached?: boolean };
-
-    // Nếu là cached pack, hiển thị thông báo đặc biệt
-    // if (packWithCache._isCached) {
-    //   toast.warning("Video này đang chờ đồng bộ lên server", { duration: 3000 });
-    //   return;
-    // }
-
-    if (!this.ownerIdSet.has(pack._id)) {
-      toast.error("Pack này nằm trên một thiết bị khác", { duration: 4000 });
-      return;
-    }
-
     this.router.navigate(["/pack-detail"], { state: { pack } });
   }
 }

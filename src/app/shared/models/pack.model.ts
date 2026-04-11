@@ -1,12 +1,10 @@
-import { D } from "@angular/cdk/bidi-module.d-IN1Vp56w";
 import { DeviceDoc } from "@rsApp/shared/models/device.model";
 
 export type PackStatus = "recorded" | "uploading" | "uploaded" | "verified" | "failed";
 export type StorageProvider = "local" | "s3" | "gcs" | "azure";
+export type VideoType = "normal" | "return"; // normal video or return video (trả hàng)
 
 export interface PackCreatePayload {
-  userId: string;
-
   deviceId: string; // từ DeviceInfoService.getDeviceInfo()
   packNumber: string; // thường = orderCode
   orderCode?: string;
@@ -27,16 +25,21 @@ export interface PackCreatePayload {
   videoFrameRate?: string; // "30"
   videoChecksum?: string;
 
+  thumbnailStorage?: StorageProvider;
+  thumbnailStorageKey?: string; // local path hoặc s3 key
+  thumbnailBase64?: string; // base64 string
+  thumbnailUrl?: string; // URL để display
+
   appVersion?: string;
   ip?: string;
   tags?: string[];
   notes?: string;
+  videoType?: VideoType; // "normal" or "return" (trả hàng)
 }
 
-export interface PackDoc
-  extends Required<
-    Pick<PackCreatePayload, "userId" | "deviceId" | "packNumber" | "createDate" | "startRecordDate" | "endRecordDate" | "timeRecordedMs">
-  > {
+export interface PackDoc extends Required<
+  Pick<PackCreatePayload, "deviceId" | "packNumber" | "createDate" | "startRecordDate" | "endRecordDate" | "timeRecordedMs">
+> {
   _id: string;
   deviceId: string;
   device?: DeviceDoc; // populated
@@ -45,6 +48,7 @@ export interface PackDoc
   createdAt: string;
   lastAccessAt?: string;
   deletedAt?: string | null;
+  isTrashed?: boolean;
   // video + extras có thể có
   orderCode?: string;
   videoStorage?: StorageProvider;
@@ -55,14 +59,17 @@ export interface PackDoc
   videoResolution?: string;
   videoFrameRate?: string;
   videoChecksum?: string;
-  appVersion?: string;
+  thumbnailStorage?: StorageProvider;
+  thumbnailStorageKey?: string;
+  thumbnailBase64?: string;
+  thumbnailUrl?: string;
   ip?: string;
   tags?: string[];
   notes?: string;
+  videoType?: VideoType; // "normal" or "return" (trả hàng)
 }
 
 export interface PackListQuery {
-  userId?: string;
   deviceId?: string;
   packNumber?: string;
   orderCode?: string;

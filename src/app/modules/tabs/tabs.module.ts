@@ -8,12 +8,11 @@ import { TabsPageRoutingModule } from "./tabs-routing.module";
 import { TabsPage } from "./tabs.page";
 import { NZModule } from "@rsApp/library-modules/nz-module";
 import { HomePage } from "./home/home.page";
-import { AccountPage } from "./account/account.page";
 import { PacksListPage } from "./packs-list/packs-list.page";
 
 @NgModule({
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
-  imports: [IonicModule, CommonModule, FormsModule, TabsPageRoutingModule, NZModule, HomePage, AccountPage, PacksListPage],
+  imports: [IonicModule, CommonModule, FormsModule, TabsPageRoutingModule, NZModule, HomePage, PacksListPage],
   declarations: [TabsPage],
 })
 export class TabsPageModule {}

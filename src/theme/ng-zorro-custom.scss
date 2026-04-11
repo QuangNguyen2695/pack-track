@@ -1,55 +1,23 @@
-nz-select {
-  border: none !important;
-
-  nz-select-top-control {
-    height: 38px !important;
-    display: flex !important;
-    align-items: center !important;
-    border-radius: var(--radius-md) !important;
-    border-style: var(--tw-border-style) !important;
-    border-width: 1px !important;
-    border-color: var(--color-border) !important;
-    background-color: var(--color-background) !important;
-    width: 100% !important;
-    font-size: var(--text-xs) !important;
-    line-height: var(--tw-leading, var(--text-xs--line-height)) !important;
-    color: var(--color-foreground) !important;
-
-    input {
-      height: 100% !important;
-      border: none !important;
-    }
-
-    input:focus {
-      border: none !important;
-      box-shadow: none !important;
-    }
-  }
-}
-
+// Import status colors
 nz-form-item {
+  display: flex !important;
+  flex-direction: column !important;
   nz-form-label {
     font-weight: 500 !important;
     min-height: 32px !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
   nz-input-group {
     min-height: 38px !important;
   }
-}
-
-nz-date-picker {
-  min-height: 38px !important;
-}
-
-.ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input) .ant-select-selector {
-  border-color: var(--primary) !important;
-  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
-}
-
-.nz-skeleton-large {
-  h3 {
-    height: 40px !important;
+  nz-form-control {
+    min-height: auto !important;
   }
+}
+
+nz-form-control {
+  min-height: auto !important;
 }
 
 nz-input-group.custom-nz-input-group-none-boder {
@@ -58,8 +26,7 @@ nz-input-group.custom-nz-input-group-none-boder {
   padding: 0 !important;
   align-items: center !important;
   border-bottom: 2px solid var(--primary) !important;
-  height: 38px !important;
-  padding: 6px 16px !important;
+  padding-bottom: 8px !important;
   box-shadow: none !important;
 }
 
@@ -69,15 +36,16 @@ nz-input-group.custom-nz-input-group-none-boder:not(.ant-input-affix-wrapper-dis
   box-shadow: none;
 }
 
-nz-input-group.custom-nz-input-group {
+nz-input-group.custom-nz-textarea-group {
   display: flex !important;
   align-items: center !important;
   box-shadow: none !important;
-  height: 38px !important;
+  height: auto !important;
   padding: 6px 16px !important;
-  border-radius: 5px;
-  border-color: var(--color-border) !important;
-
+  border-radius: 8px;
+  textarea {
+    padding: 0;
+  }
   .ant-input-focused,
   .ant-input:focus {
     border-color: var(--primary) !important;
@@ -88,29 +56,14 @@ nz-input-group.custom-nz-input-group {
   }
 }
 
-nz-input-group.custom-nz-input-group:not(.ant-input-affix-wrapper-disabled):hover {
-  border-color: var(--primary) !important;
-}
-
-nz-input-group.custom-nz-input-group.ant-input-affix-wrapper-focused {
-  border-color: var(--primary) !important;
-  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
-}
-
-.custom-nz-input:not(.ant-input-affix-wrapper-disabled):hover {
-  border-color: var(--primary) !important;
-}
-
-nz-input-group.custom-nz-textarea-group {
+nz-input-group.custom-nz-input-group {
   display: flex !important;
   align-items: center !important;
   box-shadow: none !important;
-  height: auto !important;
+  height: 42px !important;
   padding: 6px 16px !important;
   border-radius: 5px;
-  textarea {
-    padding: 0;
-  }
+
   .ant-input-focused,
   .ant-input:focus {
     border-color: var(--primary) !important;
@@ -130,6 +83,52 @@ nz-input-group.custom-nz-textarea-group.ant-input-affix-wrapper-focused {
   outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
 }
 
+nz-date-picker {
+  height: 42px !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+}
+
+nz-date-picker.ant-picker-focused {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+  border-width: 1px !important;
+}
+
+nz-range-picker {
+  height: 42px !important;
+  border-radius: 5px !important;
+  box-shadow: none !important;
+}
+
+nz-range-picker.ant-picker-focused {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+  border-width: 1px !important;
+}
+
+.custom-nz-input {
+  padding: 6px 16px !important;
+  border-radius: 8px !important;
+
+  .ant-input[disabled] {
+    color: black !important;
+  }
+}
+
+nz-input-group.custom-nz-input-group:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary) !important;
+}
+
+nz-input-group.custom-nz-input-group.ant-input-affix-wrapper-focused {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.custom-nz-input:not(.ant-input-affix-wrapper-disabled):hover {
+  border-color: var(--primary) !important;
+}
+
 .custom-nz-input:focus {
   border-color: var(--primary) !important;
   outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
@@ -137,7 +136,25 @@ nz-input-group.custom-nz-textarea-group.ant-input-affix-wrapper-focused {
 
 .input-active {
   border-color: var(--primary);
-  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white);
+}
+
+.custom-nz-checkbox {
+  .ant-checkbox-checked {
+    .ant-checkbox-inner {
+      background-color: var(--primary) !important;
+      border-color: var(--primary) !important;
+      border-radius: 5px;
+    }
+  }
+  .ant-checkbox-inner {
+    border-radius: 5px;
+    width: 20px !important;
+    height: 20px !important;
+  }
+  .ant-checkbox-inner::after {
+    left: 25% !important;
+  }
 }
 
 .ant-dropdown {
@@ -148,12 +165,264 @@ nz-input-group.custom-nz-textarea-group.ant-input-affix-wrapper-focused {
   }
 }
 
-.custom-nz-select.bus-goods-detail {
+.cus-nz-tabset-bus-schedule {
+  .ant-tabs-tab:nth-child(2) {
+    margin-left: 0 !important;
+  }
+
+  .ant-tabs-tab {
+    padding-top: 0 !important;
+  }
+}
+
+.ticket-policy-tooltip {
+  .ant-tooltip-content {
+    width: max-content;
+    max-width: 280px;
+    background-color: #fbeae4;
+  }
+
+  .ant-tooltip-inner {
+    background-color: transparent;
+    color: var(--primary);
+  }
+}
+
+.input-focus-custom {
+  outline: 3px solid rgba(242, 117, 78, 0.2);
+  border: 1px solid rgba(242, 117, 78, 0.7) !important;
+}
+
+.choose-departure-destination-point-popover {
+  .ant-popover-inner {
+    border-radius: 5px !important;
+    border: 1px solid var(--border) !important;
+  }
+
+  .ant-popover-arrow {
+    display: none;
+  }
+
+  span {
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .ant-radio-checked::after {
+    border: 1px solid var(--primary) !important;
+  }
+
+  .ant-radio-checked .ant-radio-inner {
+    border: 1px solid var(--primary) !important;
+  }
+
+  .ant-radio-inner::after {
+    background-color: var(--primary) !important;
+  }
+}
+
+.nz-custom-radio {
+  span {
+    display: flex !important;
+    align-items: center !important;
+  }
+
+  .ant-radio-checked::after {
+    border: 1px solid var(--primary) !important;
+  }
+
+  .ant-radio-checked .ant-radio-inner {
+    border: 1px solid var(--primary) !important;
+  }
+
+  .ant-radio-inner::after {
+    background-color: var(--primary) !important;
+  }
+}
+
+.custom-nz-select-no-border {
+  nz-select-top-control {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.custom-nz-select {
+  height: 100% !important;
+  nz-select-top-control {
+    border-radius: 5px !important;
+    padding: 0 16px !important;
+    align-items: center !important;
+    height: 42px !important;
+    span {
+      height: 100% !important;
+    }
+  }
+
+  nz-select-item {
+    font-size: 14px !important;
+    display: flex !important;
+  }
+
+  nz-select-search {
+    font-size: 14px !important;
+    input::placeholder {
+      font-size: 14px !important;
+    }
+    input {
+      font-size: 14px !important;
+    }
+  }
+
+  nz-select-placeholder {
+    font-size: 14px !important;
+  }
+
+  .ant-select-disabled.ant-select-multiple .ant-select-selection-item {
+    border: 1px solid #f0f0f0 !important;
+    color: black !important;
+    background: #f5f5f5 !important;
+  }
+}
+
+.custom-nz-select.ant-select-disabled.ant-select-multiple {
+  .ant-select-selection-item {
+    border: 1px solid #d9d9d9 !important;
+    color: black !important;
+    background: #f5f5f5 !important;
+  }
+}
+
+.custom-nz-select.height-small {
+  nz-select-top-control {
+    height: 30px !important;
+  }
+}
+
+.custom-nz-select.height-medium {
+  nz-select-top-control {
+    height: 36px !important;
+  }
+}
+
+.custom-nz-select.height-large {
+  nz-select-top-control {
+    min-height: 42px !important;
+  }
+}
+
+.custom-nz-select.ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input) .ant-select-selector {
+  border-color: var(--primary) !important;
+  outline: 3px solid color-mix(in srgb, var(--primary) 20%, white) !important;
+}
+
+.custom-nz-select-none-border {
+  nz-select-top-control {
+    border: none !important;
+    box-shadow: none !important;
+  }
+}
+
+.custom-nz-select-dropdown {
+  nz-option-item {
+    background-color: white !important;
+    padding: 8px 15px;
+  }
+
+  nz-option-item:hover {
+    background: #f5f5f5 !important;
+  }
+
+  .ant-select-item-option-selected {
+    .ant-select-item-option-content {
+      position: relative;
+    }
+
+    .ant-select-item-option-content::before {
+      position: absolute !important;
+      right: 5px;
+      content: "";
+      display: block;
+      width: 8px;
+      height: 15px;
+      border: solid var(--primary);
+      border-width: 0 3px 3px 0;
+      transform: rotate(45deg);
+    }
+  }
+}
+
+.custom-nz-select-bus-schedule-detail {
+  nz-select-item {
+    padding: 0 !important;
+
+    .ant-select-selection-item-remove {
+      position: absolute !important;
+      right: 8px !important;
+      top: 0 !important;
+      bottom: 0 !important;
+    }
+  }
+
+  nz-option-item {
+    padding: 0 !important;
+
+    .ant-select-item-option-state {
+      position: absolute !important;
+      right: 3px !important;
+      top: 0 !important;
+      bottom: 0 !important;
+      display: flex;
+      align-items: center;
+    }
+  }
+}
+
+.custom-nz-select.custom-nz-select-2-line {
   nz-select-top-control {
     height: 60px !important;
     align-items: start !important;
     display: flex !important;
     padding: 4px 16px !important;
+  }
+}
+
+.cus-nz-seat-detail {
+  border-radius: 5px !important;
+
+  nz-select-top-control {
+    border-radius: 5px !important;
+  }
+
+  .ant-select-selection-item {
+    color: black !important;
+  }
+}
+
+.custom-nz-select-with-nz-tab {
+  nz-select-top-control {
+    width: 120px;
+  }
+}
+
+.cuz-nz-tabset-w-end-icon {
+  nz-tabs-nav {
+    padding-right: 40px !important;
+  }
+}
+
+.cuz-nz-tabset-w-end-icon-large {
+  nz-tabs-nav {
+    padding-right: 60px !important;
+  }
+}
+
+.cuz-nz-tabset-h-full {
+  .ant-tabs-content {
+    height: 100% !important;
+    .ant-tabs-tabpane {
+      height: 100% !important;
+    }
   }
 }
 
@@ -175,8 +444,11 @@ nz-input-group.custom-nz-textarea-group.ant-input-affix-wrapper-focused {
 
 nz-input-otp {
   width: 100%;
+  column-gap: 0 !important;
+
   .ant-otp-input {
-    height: 60px !important;
-    font-size: 24px;
+    height: 46px !important;
+    font-size: 14px;
+    border-radius: 5px;
   }
 }

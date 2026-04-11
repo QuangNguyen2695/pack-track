@@ -1,32 +1,33 @@
 import { registerPlugin, Capacitor, PluginListenerHandle } from "@capacitor/core";
 
 export interface StartPreviewOptions {
-  toBack?: boolean;         // Android: render preview phía sau WebView (cần webview trong suốt)
-  withAudio?: boolean;      // Ghi kèm audio hay không
+  toBack?: boolean; // Android: render preview phía sau WebView (cần webview trong suốt)
+  withAudio?: boolean; // Ghi kèm audio hay không
 }
 
 export interface StartRecordingOptions {
-  fileNamePrefix?: string;  // Tiền tố tên file
+  fileNamePrefix?: string; // Tiền tố tên file
   quality?: "sd" | "hd" | "fhd" | "uhd";
-  saveToGallery?: boolean;  // (tùy nền tảng)
+  saveToGallery?: boolean; // (tùy nền tảng)
+  isReturn?: boolean; // (Android) nếu true sẽ lưu vào thư mục riêng cho video trả hàng
 }
 
 export interface StopRecordingResult {
-  uri: string;              // Android: content:// URI (MediaStore), iOS: file:/// URL
+  uri: string; // Android: content:// URI (MediaStore), iOS: file:/// URL
 }
 
 export interface BarcodeEvent {
   value: string;
-  format: string;           // "QR_CODE", "CODE_128", ...
-  ts: number;               // epoch ms
+  format: string; // "QR_CODE", "CODE_128", ...
+  ts: number; // epoch ms
 }
 
 export interface SetTimestampOverlayOptions {
-  enabled: boolean;         // bật/tắt đốt timestamp trực tiếp vào video (Android)
-  format?: string;          // "yyyy-MM-dd HH:mm:ss" (mặc định)
-  textSizeSp?: number;      // kích thước chữ theo sp (mặc định 18)
-  color?: string;           // mã màu "#FFFFFFFF" (ARGB/RGB)
-  marginDp?: number;        // lề theo dp (mặc định 12)
+  enabled: boolean; // bật/tắt đốt timestamp trực tiếp vào video (Android)
+  format?: string; // "yyyy-MM-dd HH:mm:ss" (mặc định)
+  textSizeSp?: number; // kích thước chữ theo sp (mặc định 18)
+  color?: string; // mã màu "#FFFFFFFF" (ARGB/RGB)
+  marginDp?: number; // lề theo dp (mặc định 12)
 }
 
 export interface SetTorchOptions {

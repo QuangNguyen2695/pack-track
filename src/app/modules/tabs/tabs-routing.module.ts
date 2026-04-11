@@ -22,8 +22,15 @@ const routes: Routes = [
         },
       },
       {
-        path: "account",
-        loadComponent: () => import("./account/account.page").then((m) => m.AccountPage),
+        path: "donate",
+        loadComponent: () => import("./donate/donate.page").then((m) => m.DonatePage),
+        data: {
+          index: 2,
+        },
+      },
+      {
+        path: "settings",
+        loadComponent: () => import("./settings/settings.page").then((m) => m.SettingsPage),
         data: {
           index: 3,
         },

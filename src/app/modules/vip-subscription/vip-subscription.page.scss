@@ -1,0 +1,68 @@
+:host {
+  display: block;
+  height: 100%;
+  --ion-page-background: #f5f5f5;
+}
+
+/* Fullscreen content to extend behind header and footer */
+ion-content {
+  --ion-padding-top: 60px !important;
+  --ion-padding-bottom: calc(100px + env(safe-area-inset-bottom)) !important;
+  --ion-safe-area-bottom: 0 !important;
+}
+
+/* Fixed subscribe button at bottom */
+.fixed-button-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: white;
+  padding: 30px;
+  padding-bottom: max(30px, env(safe-area-inset-bottom));
+  border-top: 1px solid #e5e7eb;
+  box-sizing: border-box;
+  z-index: 100;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  pointer-events: auto;
+}
+ 
+/* Animation for packages */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+div[class*="border-purple"] {
+  animation: slideIn 0.3s ease-out;
+}
+
+.transition-all {
+  transition: all 0.3s ease;
+}
+
+/* Recommended badge animation */
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(249, 115, 22, 0);
+  }
+}
+
+.bg-linear-to-r {
+  animation: pulse 2s infinite;
+}
+
+ion-content {
+  --padding-bottom: 140px !important;
+}

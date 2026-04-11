@@ -1,0 +1,135 @@
+<ion-header>
+  <ion-toolbar class="text-white">
+    <div class="bg-toolbar">
+      <div class="px-3 py-2 content-toolbar flex items-center justify-center pt-2">
+        <div class="text-xl">Ủng Hộ</div>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <!-- Hero Section -->
+  <div
+    class="hero-section bg-gradient-to-br from-[#04aca3] via-[#05b9ad] to-[#1fbfb5] text-white text-center py-16 px-6 relative overflow-hidden shadow-lg"
+  >
+    <div class="absolute top-0 left-0 right-0 bottom-0 opacity-10 pointer-events-none">
+      <div class="absolute top-[-50%] right-[-20%] w-96 h-96 bg-white rounded-full blur-3xl"></div>
+      <div class="absolute bottom-[-40%] left-[-15%] w-80 h-80 bg-white rounded-full blur-3xl"></div>
+    </div>
+    <div class="relative z-10">
+      <div class="hero-icon text-8xl mb-4">🤩🤩🤩</div>
+      <h2 class="text-2xl !text-white mb-4">Em chờ đợi giây phút này lâu lắm rồi!</h2>
+      <p class="text-white text-xl leading-relaxed mb-6">Ủng hộ em nhé</p>
+      <div class="divider-line w-16 h-1 bg-gradient-to-r from-[#04aca3] to-[#038a83] mx-auto"></div>
+    </div>
+  </div>
+
+  <!-- Funny Donation Section -->
+  <div class="donation-section ion-padding">
+    <h2 class="section-title">🎁 Giúp em chén này chén sau em tự bới</h2>
+    <p class="donation-subtitle text-center text-gray-600 text-sm mb-6">
+      Từ 10K đến... tùy ý huynh! (Giàu quá thì cho 500K <span class="wink">😉</span>)
+    </p>
+
+    <!-- Funny Amount Labels -->
+    <div class="amount-buttons">
+      <button class="amount-btn btn-5" [class.active]="selectedAmount === 5000" (click)="selectAmount(5000)">
+        <span class="amount-emoji">🥤 </span>
+        <span>Trà đá</span>
+        <span class="amount-value">5K</span>
+      </button>
+      <button class="amount-btn btn-10" [class.active]="selectedAmount === 10000" (click)="selectAmount(10000)">
+        <span class="amount-emoji">🍙 </span>
+        <span>Cơm nắm</span>
+        <span class="amount-value">10K</span>
+      </button>
+      <button class="amount-btn btn-50" [class.active]="selectedAmount === 50000" (click)="selectAmount(50000)">
+        <span class="amount-emoji">🍻</span>
+        <span>Ken</span>
+        <span class="amount-value">50K</span>
+      </button>
+      <button class="amount-btn btn-100" [class.active]="selectedAmount === 100000" (click)="selectAmount(100000)">
+        <span class="amount-emoji">🍜</span>
+        <span>Mì cay</span>
+        <span class="amount-value">100K</span>
+      </button>
+      <button class="amount-btn btn-200" [class.active]="selectedAmount === 200000" (click)="selectAmount(200000)">
+        <span class="amount-emoji">🥘</span>
+        <span>Lẩu hải sản!</span>
+        <span class="amount-value">200K</span>
+      </button>
+      <button class="amount-btn btn-500" [class.active]="selectedAmount === 500000" (click)="selectAmount(500000)">
+        <span class="amount-emoji">🏰</span>
+        <span>Buffet</span>
+        <span class="amount-value">500K</span>
+      </button>
+    </div>
+
+    <!-- Custom Amount -->
+    <div class="custom-amount">
+      <label for="customAmount" class="custom-label">Hoặc tiền tùy tâm, trạng 😽</label>
+      <nz-form-item class="!flex !flex-col gap-1 !w-full !mb-0">
+        <nz-form-control class="!flex flex-col">
+          <nz-input-group [nzSuffix]="amountSuffixTpl" class="custom-nz-input-group !mt-0">
+            <input
+              nz-input
+              placeholder="Nhập số tiền donate"
+              [ngModel]="selectedAmount | formatVnd"
+              (ngModelChange)="onAmountChange($event)"
+              (keydown)="onAmountKeydown($event)"
+            />
+          </nz-input-group>
+          <ng-template #amountSuffixTpl>
+            @if (selectedAmount) {
+            <span class="text-gray-600 font-semibold">đ</span>
+            }
+          </ng-template>
+        </nz-form-control>
+      </nz-form-item>
+    </div>
+
+    <!-- Selected Amount Display - Funny Version -->
+    <div class="selected-display">
+      <p class="display-label">Ủng hộ:</p>
+      <p class="display-amount">{{ selectedAmount.toLocaleString('vi-VN') }} VNĐ</p>
+      <p class="display-message">{{ currentMessage }}</p>
+    </div>
+  </div>
+
+  <!-- Payment Methods - Funny -->
+  <div class="payment-methods ion-padding">
+    <h2 class="section-title">💳 Ủng hộ qua</h2>
+    <div class="methods-grid">
+      <button class="method-card method-momo" (click)="selectDonationMethod(donationMethods[0])">
+        <img src="/assets/icons/momo.svg" alt="Momo Logo" class="w-8 h-8" />
+        <span class="method-name">Momo</span>
+      </button>
+      <button class="method-card method-bank" (click)="selectDonationMethod(donationMethods[1])">
+        <img src="/assets/icons/mastercard.svg" alt="Bank Logo" class="w-8 h-8" />
+        <span class="method-name">Ngân hàng</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Funny Reasons -->
+  <!-- Heartfelt Section -->
+  <div class="support-message ion-padding">
+    <p class="message-title font-bold text-gray-900 mb-3">🙏 Sinh viên làm app...</p>
+    <p class="message-text">
+      Em làm app có 1 mình à, đam mê làm cái app này để giúp mọi người đỡ khoảng chi phí mất hàng hoặc tráo hàng. Mỗi khoản donate từ mọi người đều
+      giúp em tiếp tục cố gắng phục vụ bạn tốt hơn. Thật lòng cảm ơn! 💙
+    </p>
+    <p class="message-text">
+      À quên! App của em có quảng cáo nữa, nhưng em biết quảng cáo rất khó chịu nên em để nó ở mức tối thiểu rồi. Nếu anh/chị nào có điều kiện thì ủng
+      hộ em để em có thể phát triển app tốt hơn nữa nhé! 🥹
+    </p>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-section ion-padding">
+    <p class="footer-title text-2xl font-black text-[#04aca3] mb-2">📦 SafeTrack</p>
+    <p class="footer-subtitle text-sm text-gray-600 mb-3">App lưu trữ video gói đơn 💛</p>
+    <p class="footer-contact text-xs text-gray-500">© 2026 | Một mình tao đang cố gắng hết sức</p>
+  </div>
+</ion-content>

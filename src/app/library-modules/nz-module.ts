@@ -28,10 +28,11 @@ import { NzCardModule } from "ng-zorro-antd/card";
 import { NzEmptyModule } from "ng-zorro-antd/empty";
 import { NzSegmentedModule } from "ng-zorro-antd/segmented";
 import { NzDescriptionsModule } from "ng-zorro-antd/descriptions";
-
+import { NzAlertModule } from "ng-zorro-antd/alert";
 @NgModule({
   imports: [NzIconModule.forRoot([EyeInvisibleOutline])],
   exports: [
+    NzAlertModule,
     NzSelectModule,
     NzSwitchModule,
     NzCheckboxModule,

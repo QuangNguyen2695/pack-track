@@ -1,0 +1,200 @@
+<ion-header>
+  <ion-toolbar class="text-white">
+    <div class="bg-img-toolbar">
+      <div class="bg-toolbar">
+        <div class="px-3 py-2 content-toolbar flex items-center justify-between pt-2">
+          <ion-buttons slot="start">
+            <ion-back-button defaultHref="tabs" text="" icon="chevron-back-outline" color="white"></ion-back-button>
+          </ion-buttons>
+          <ion-title class="ion-no-padding text-center">
+            <ng-container>Danh sách video</ng-container>
+          </ion-title>
+        </div>
+      </div>
+    </div>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)" pullFactor="0.5" pullMin="100" pullMax="500">
+    <ion-refresher-content
+      pullingIcon="chevron-down-circle-outline"
+      pullingText="Kéo xuống để tải lại..."
+      refreshingSpinner="circles"
+      refreshingText="Đang tải..."
+    >
+    </ion-refresher-content>
+  </ion-refresher>
+
+  <cdk-virtual-scroll-viewport itemSize="56" class="h-full">
+    <div class="packs-mobile">
+      <!-- Sticky Filter Bar -->
+      <div class="filter-bar">
+        <!-- Search + Date -->
+        <div class="row">
+          <nz-form-control>
+            <nz-input-group [nzSuffix]="searchClearTpl" class="custom-nz-input-group mt-0! mb-0!">
+              <input
+                type="text"
+                nz-input
+                placeholder="Tìm kiếm (pack/order/ghi chú)"
+                [ngModel]="form.value.keyword"
+                (ngModelChange)="form.patchValue({ keyword: $event })"
+              />
+            </nz-input-group>
+            <ng-template #searchClearTpl>
+              <span nz-icon class="ant-input-clear-icon" nzTheme="fill" nzType="close-circle" (click)="form.patchValue({ keyword: '' })"></span>
+            </ng-template>
+          </nz-form-control>
+          <button nz-button class="h-10.5!" (click)="onClearFilters()"><span nz-icon nzType="reload"></span> Xoá lọc</button>
+        </div>
+
+        <div class="row row-actions">
+          <nz-date-picker
+            class="date"
+            [ngModel]="form.value.date"
+            (ngModelChange)="form.patchValue({ date: $event })"
+            nzFormat="yyyy-MM-dd"
+            nzPlaceHolder="Chọn ngày"
+          >
+          </nz-date-picker>
+          <nz-select class="custom-nz-select" [ngModel]="sortOpt" (ngModelChange)="onChangeSort($event)" nzSize="small">
+            <nz-option nzValue="newest" nzLabel="Mới nhất"></nz-option>
+            <nz-option nzValue="oldest" nzLabel="Cũ nhất"></nz-option>
+            <nz-option nzValue="duration_desc" nzLabel="Thời lượng dài → ngắn"></nz-option>
+            <nz-option nzValue="duration_asc" nzLabel="Thời lượng ngắn → dài"></nz-option>
+          </nz-select>
+        </div>
+
+        <!-- Delete actions when videos are selected -->
+        <div class="selection-bar" *ngIf="getSelectedCount() > 0">
+          <div class="selection-info">
+            <span class="selection-count">✓ Đã chọn {{ getSelectedCount() }} video</span>
+          </div>
+          <div class="selection-actions">
+            <button nz-button nzType="default" nzSize="small" (click)="selectAll()" class="!bg-white !flex !items-center">
+              <span nz-icon nzType="check-square" nzTheme="fill"></span>
+              Chọn tất cả
+            </button>
+            <button nz-button nzType="text" nzSize="small" (click)="clearSelection()" class="!bg-primary !flex !items-center">
+              <span nz-icon nzType="close"></span>
+              Bỏ chọn
+            </button>
+            <button nz-button nzDanger nzSize="small" (click)="deleteSelected()" [disabled]="loading" class="!bg-red-300 !flex !items-center">
+              <span nz-icon nzType="delete"></span>
+              Xóa
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading skeleton -->
+      <ng-container *ngIf="loading">
+        <nz-skeleton *ngFor="let i of [1,2,3,4]" [nzActive]="true"></nz-skeleton>
+      </ng-container>
+
+      <!-- Empty state -->
+      <nz-empty
+        *ngIf="!loading && currentSearchPacks.packs.length === 0"
+        nzNotFoundImage="simple"
+        [nzNotFoundContent]="activeTab === 'normal' ? 'Không có gói đơn nào' : 'Không có video trả hàng nào'"
+      >
+      </nz-empty>
+      <!-- Card list -->
+      <div class="cards" *ngIf="!loading && currentSearchPacks.packs.length">
+        <nz-card
+          *ngFor="let r of currentSearchPacks.packs; let i = index"
+          nzSize="small"
+          class="card"
+          [class.card-selected]="isVideoSelected(r._id)"
+          (click)="openPackDetail(r)"
+        >
+          <!-- Checkbox overlay -->
+
+          <div class="card-content">
+            <!-- Thumbnail -->
+            <div class="thumbnail">
+              <img
+                *ngIf="r.thumbnailBase64 || r.thumbnailUrl"
+                [attr.src]="getThumbnailUrl(r.thumbnailBase64, r.thumbnailUrl)"
+                alt="Video thumbnail"
+                class="thumbnail-img"
+                (load)="onThumbnailLoad(r._id)"
+                (error)="onThumbnailError(r._id, $event)"
+              />
+              <div *ngIf="!r.thumbnailBase64 && !r.thumbnailUrl" class="thumbnail-placeholder">
+                <ion-icon name="videocam-outline"></ion-icon>
+              </div>
+            </div>
+
+            <!-- Content -->
+            <div class="content">
+              <div class="card-header">
+                <div class="title">
+                  <small class="muted" *ngIf="r.orderCode">#{{ r.orderCode }}</small>
+                </div>
+
+                <div class="" (click)="toggleVideoSelection(r._id, $event)">
+                  <input
+                    type="checkbox"
+                    [checked]="isVideoSelected(r._id)"
+                    (click)="$event.stopPropagation()"
+                    (change)="toggleVideoSelection(r._id)"
+                  />
+                </div>
+                <span>#{{ i + 1 }}</span>
+              </div>
+
+              <div class="row">
+                <span nz-typography>
+                  <ion-icon name="time-outline"></ion-icon>
+                  {{ r.startRecordDate | date:'yyyy-MM-dd' }}
+                </span>
+                <div>
+                  <span class="duration">{{ fmtDuration(r.timeRecordedMs) }}</span>
+                </div>
+              </div>
+
+              <div class="row small muted">
+                <span nz-typography class="flex items-center gap-1">
+                  {{ r.startRecordDate | date:'HH:mm' }} → {{ r.endRecordDate | date:'HH:mm' }}
+                </span>
+                <span nz-typography class="flex items-center gap-1" *ngIf="r.videoFileSize">
+                  <span>{{ (r.videoFileSize/1024/1024) | number:'1.0-1' }} MB</span>
+                </span>
+                <span nz-typography class="flex items-center gap-1" *ngIf="r.device && r.device.modelDevice">
+                  <ion-icon name="phone-portrait-outline"></ion-icon>
+                  <span>{{r.device.modelDevice}}</span>
+                </span>
+                <span nz-typography class="flex items-center gap-1" *ngIf="r.device && r.device.platform">
+                  <ion-icon name="layers-outline"></ion-icon>
+                  <div>
+                    <span>{{r.device.platform}}</span>
+                    <span *ngIf="r.device.osVersion">, {{r.device.osVersion}}</span>
+                  </div>
+                </span>
+              </div>
+
+              <!-- (tuỳ chọn) hành động -->
+              <!-- <div class="row actions">
+        <button nz-button nzSize="small" nzType="link">Xem</button>
+      </div> -->
+            </div>
+          </div>
+        </nz-card>
+      </div>
+
+      <!-- Load more -->
+      <div class="load-more" *ngIf="!loading && currentSearchPacks.packs.length && !isCurrentTabReachedEnd && getSelectedCount() === 0">
+        <button nz-button nzType="default" (click)="loadMore()" [disabled]="loadingMore">
+          <span *ngIf="!loadingMore">Tải thêm</span>
+          <span *ngIf="loadingMore"><span nz-icon nzType="loading"></span> Đang tải…</span>
+        </button>
+      </div>
+
+      <div class="end" *ngIf="!loading && currentSearchPacks.packs.length && isCurrentTabReachedEnd && getSelectedCount() === 0">
+        <span>Đã hết</span>
+      </div>
+    </div>
+  </cdk-virtual-scroll-viewport>
+</ion-content>

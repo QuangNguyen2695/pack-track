@@ -4,7 +4,6 @@ import { IonicModule } from "@ionic/angular";
 import { NzProgressModule } from "ng-zorro-antd/progress";
 import { Subject, takeUntil } from "rxjs";
 import { SyncProgress, SyncProgressService } from "@rsApp/shared/services/sync-progress/sync-progress.service";
-import { VideoCacheService } from "@rsApp/shared/services/video-cache/video-cache.service";
 
 @Component({
   selector: "app-sync-status-widget",
@@ -20,6 +19,7 @@ export class SyncStatusWidgetComponent implements OnInit, OnDestroy {
     totalVideos: 0,
     completedVideos: 0,
     failedVideos: 0,
+    deletedVideos: 0,
     status: "idle",
   };
 
@@ -27,12 +27,11 @@ export class SyncStatusWidgetComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private syncProgressService: SyncProgressService, private videoCacheService: VideoCacheService) {}
+  constructor(private syncProgressService: SyncProgressService) {}
 
   ngOnInit(): void {
     this.syncProgressService.progress$.pipe(takeUntil(this.destroy$)).subscribe((progress) => {
       this.progress = progress;
-      console.log("🚀 ~ SyncStatusWidgetComponent ~ ngOnInit ~ this.progress:", this.progress);
     });
   }
 
@@ -43,36 +42,52 @@ export class SyncStatusWidgetComponent implements OnInit, OnDestroy {
 
   getStatusIcon(): string {
     switch (this.progress.status) {
+      case "scanning":
+        return "download";
       case "syncing":
         return "sync";
       case "completed":
         return this.progress.failedVideos > 0 ? "alert-circle" : "checkmark-circle";
       case "error":
         return "alert-circle";
+      case "no-videos":
+        return "checkmark-circle";
       default:
-        return "cloud-upload";
+        return "trash";
     }
   }
 
   getStatusText(): string {
     switch (this.progress.status) {
+      case "scanning":
+        return `� Bắt đầu xóa ${this.progress.scanCount || 0} video cũ`;
       case "syncing":
-        return "Đang đồng bộ video...";
+        return "🗑️ Đang xóa video cũ...";
       case "completed":
-        return this.progress.failedVideos > 0 ? "Đồng bộ hoàn tất (có lỗi)" : "Đồng bộ thành công";
+        return this.progress.failedVideos > 0 ? "⚠️ Xóa hoàn tất (có lỗi)" : `✅ Xóa thành công - Hoàn tất`;
       case "error":
-        return "Lỗi đồng bộ";
+        return "❌ Lỗi xóa video";
+      case "no-videos":
+        return "✅ Không có video cũ cần xóa - Hoàn tất";
       default:
-        return "Đồng bộ video";
+        return "🗑️ Xóa video cũ";
     }
   }
 
   getProgressPercentage(): number {
+    // During scanning and no-videos, show 100% (waiting state)
+    if (this.progress.status === "scanning" || this.progress.status === "no-videos") {
+      return 100;
+    }
+    // During deletion, show actual progress
     if (this.progress.totalVideos === 0) return 0;
     return ((this.progress.completedVideos + this.progress.failedVideos) / this.progress.totalVideos) * 100;
   }
 
   getProgressStatus(): "success" | "exception" | "active" | "normal" {
+    if (this.progress.status === "scanning" || this.progress.status === "no-videos") {
+      return "normal";
+    }
     if (this.progress.status === "completed") {
       return this.progress.failedVideos > 0 ? "exception" : "success";
     }
@@ -93,11 +108,11 @@ export class SyncStatusWidgetComponent implements OnInit, OnDestroy {
     this.isMinimized = !this.isMinimized;
   }
 
-  async onRetrySync(): Promise<void> {
+  async onRetryDelete(): Promise<void> {
     try {
-      await this.videoCacheService.syncWithLoading();
+      await this.syncProgressService.processAutoDelete();
     } catch (error) {
-      console.error("Retry sync failed:", error);
+      console.error("Retry delete failed:", error);
     }
   }
 }

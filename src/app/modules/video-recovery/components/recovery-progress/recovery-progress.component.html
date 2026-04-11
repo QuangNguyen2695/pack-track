@@ -1,0 +1,75 @@
+<ion-header>
+  <ion-toolbar color="primary">
+    <ion-title>Video Cache Recovery</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="recovery-container" *ngIf="progressState">
+    <!-- Status Icon & Message -->
+    <div class="status-section">
+      <div class="status-icon" [attr.aria-label]="getStatusText()">
+        {{ getStatusIcon() }}
+      </div>
+      <h2 class="status-title">{{ getStatusText() }}</h2>
+      <p class="status-message">{{ progressState.message }}</p>
+    </div>
+
+    <!-- Progress Bar -->
+    <div class="progress-section" *ngIf="progressState.status !== 'complete' && progressState.status !== 'error'">
+      <nz-progress
+        [nzPercent]="progressState.progress"
+        [nzStrokeColor]="'#1890ff'"
+        nzType="circle"
+        [nzWidth]="120"
+      ></nz-progress>
+      <p class="progress-text">{{ progressState.progress }}%</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-section" *ngIf="progressState.totalVideos > 0">
+      <div class="stat-item">
+        <span class="stat-label">Total Videos:</span>
+        <span class="stat-value">{{ progressState.totalVideos }}</span>
+      </div>
+      <div class="stat-item" *ngIf="progressState.recoveredCount > 0">
+        <span class="stat-label">Recovered:</span>
+        <span class="stat-value success">{{ progressState.recoveredCount }}</span>
+      </div>
+      <div class="stat-item" *ngIf="progressState.failedCount > 0">
+        <span class="stat-label">Failed:</span>
+        <span class="stat-value error">{{ progressState.failedCount }}</span>
+      </div>
+      <div class="stat-item" *ngIf="progressState.currentCount > 0">
+        <span class="stat-label">Processing:</span>
+        <span class="stat-value">{{ progressState.currentCount }}/{{ progressState.totalVideos }}</span>
+      </div>
+    </div>
+
+    <!-- Error Details -->
+    <div class="error-section" *ngIf="progressState.error">
+      <nz-alert
+        nzType="error"
+        [nzMessage]="'Error Details'"
+        [nzDescription]="progressState.error"
+        nzShowIcon
+      ></nz-alert>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-section">
+      <button
+        *ngIf="progressState.status === 'complete' || progressState.status === 'error'"
+        ion-button
+        color="primary"
+        expand="block"
+        (click)="dismiss()"
+      >
+        Close
+      </button>
+      <p class="info-text" *ngIf="progressState.status === 'complete'">
+        Your recovered videos will appear in the packs list.
+      </p>
+    </div>
+  </div>
+</ion-content>

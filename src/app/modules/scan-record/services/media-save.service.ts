@@ -7,7 +7,7 @@ export class MediaSaveService {
 
   constructor() {}
 
-  async ensureAlbum(name = "PackTrack Videos"): Promise<string> {
+  async ensureAlbum(name = "SafeTrack Videos"): Promise<string> {
     if (this.albumId) return this.albumId;
     let { albums } = await Media.getAlbums();
     let album = albums.find((a) => a.name === name);

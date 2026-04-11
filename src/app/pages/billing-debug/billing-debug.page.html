@@ -1,0 +1,135 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button></ion-back-button>
+    </ion-buttons>
+    <ion-title>Billing Debug</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content color="dark">
+  <!-- Toolbar Stats -->
+  <ion-item-group class="stats-group" color="dark">
+    <ion-item class="stat-item" color="dark">
+      <ion-label>
+        <small>Total Logs:</small> {{ stats.total }}
+      </ion-label>
+    </ion-item>
+    <ion-item class="stat-item" color="dark">
+      <ion-label>
+        <small>❌ Errors:</small> {{ stats.errors }}
+      </ion-label>
+    </ion-item>
+    <ion-item class="stat-item" color="dark">
+      <ion-label>
+        <small>⚠️ Warnings:</small> {{ stats.warnings }}
+      </ion-label>
+    </ion-item>
+    <ion-item class="stat-item" color="dark">
+      <ion-label>
+        <small>ℹ️ Info:</small> {{ stats.info }}
+      </ion-label>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- Control Buttons -->
+  <ion-item-group class="control-group" color="dark">
+    <ion-item-divider color="dark">
+      <ion-label><strong>Controls</strong></ion-label>
+    </ion-item-divider>
+
+    <div class="button-row">
+      <ion-button size="small" color="primary" (click)="triggerDiagnosis()">
+        🏥 Diagnosis
+      </ion-button>
+      <ion-button size="small" color="warning" (click)="checkSubscriptionStatus()">
+        🔍 Check Sub
+      </ion-button>
+      <ion-button size="small" color="success" (click)="testPurchase()">
+        🧪 Test Buy
+      </ion-button>
+    </div>
+
+    <div class="button-row">
+      <ion-button size="small" (click)="togglePause()" [color]="isPaused ? 'danger' : 'medium'">
+        {{ isPaused ? '▶️ Resume' : '⏸️ Pause' }}
+      </ion-button>
+      <ion-button size="small" (click)="toggleAutoscroll()" [color]="autoscroll ? 'success' : 'medium'">
+        {{ autoscroll ? '📌 Autoscroll ON' : '📌 Autoscroll OFF' }}
+      </ion-button>
+      <ion-button size="small" (click)="clearLogs()" color="danger">
+        🗑️ Clear
+      </ion-button>
+    </div>
+
+    <div class="button-row">
+      <ion-button size="small" (click)="downloadLogs()" color="secondary">
+        💾 JSON
+      </ion-button>
+      <ion-button size="small" (click)="exportAsCSV()" color="secondary">
+        📊 CSV
+      </ion-button>
+      <ion-button size="small" (click)="copyLogs()" color="tertiary">
+        📋 Copy
+      </ion-button>
+    </div>
+
+    <div class="button-row">
+      <ion-button size="small" (click)="downloadFileToDevice()" color="warning">
+        📥 Save JSON
+      </ion-button>
+      <ion-button size="small" (click)="exportFileToDevice()" color="warning">
+        📥 Save CSV
+      </ion-button>
+    </div>
+  </ion-item-group>
+
+  <!-- Filters -->
+  <ion-item-group class="filter-group" color="dark">
+    <ion-item-divider color="dark">
+      <ion-label><strong>Filters</strong></ion-label>
+    </ion-item-divider>
+
+    <ion-item color="dark">
+      <ion-label>Level:</ion-label>
+      <ion-select
+        [(ngModel)]="filterLevel"
+        (ionChange)="onFilterLevelChange()"
+        placeholder="Select level"
+      >
+        <ion-select-option value="all">All</ion-select-option>
+        <ion-select-option value="error">❌ Error</ion-select-option>
+        <ion-select-option value="warn">⚠️ Warning</ion-select-option>
+        <ion-select-option value="info">ℹ️ Info</ion-select-option>
+        <ion-select-option value="log">📝 Log</ion-select-option>
+      </ion-select>
+    </ion-item>
+
+    <ion-item color="dark">
+      <ion-label>Keyword:</ion-label>
+      <ion-input
+        [(ngModel)]="filterKeyword"
+        (ionChange)="onFilterKeywordChange()"
+        placeholder="Search logs..."
+        clearInput
+      ></ion-input>
+    </ion-item>
+  </ion-item-group>
+
+  <!-- Logs Container -->
+  <div class="logs-container" #logsContainer>
+    <div *ngIf="filteredLogs.length === 0" class="no-logs">
+      <p>No logs to display</p>
+    </div>
+
+    <div *ngFor="let log of filteredLogs; trackBy: trackByIndex" class="log-entry" [ngClass]="getLevelClass(log.level)">
+      <div class="log-header">
+        <span class="log-time">{{ log.timestamp }}</span>
+        <span class="log-level">{{ getLevelEmoji(log.level) }} {{ log.level.toUpperCase() }}</span>
+      </div>
+      <div class="log-content" [style.margin-left]="getIndentation(log.groupLevel)">
+        <pre>{{ log.message }}</pre>
+      </div>
+    </div>
+  </div>
+</ion-content>

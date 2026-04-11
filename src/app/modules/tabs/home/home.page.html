@@ -14,11 +14,12 @@
               </svg>
             </div>
             <div class="pl-2">
-              <div class="text-sm">Xin chào,</div>
-              <div class="font-medium">Quang</div>
+              <div class="text-sm">Xin chào!</div>
+              <!-- Ngày hôm nay -->
+              <p class="text-sm"><span class="font-medium">Ngày:</span> {{ todayStats.date | date:'dd/MM/yyyy' }}</p>
             </div>
           </div>
-          <div class="flex items-center justify-center w-24">
+          <div class="flex items-center justify-center w-16">
             <img src="assets/imgs/logo.png" alt="" />
           </div>
         </div>
@@ -28,40 +29,222 @@
 </ion-header>
 <ion-content>
   <div class="p-4">
-    <div class="mb-4">
-      <h2 class="text-xl font-bold mb-2">Test Video Cache</h2>
-      <p class="text-gray-600 text-sm mb-4">Click button để thêm fake video vào cache và test sync widget</p>
+    <!-- Thống kê hôm nay -->
+    <div class="mb-6">
+      <h2 class="text-xl font-bold mb-4 text-gray-800">Thống Kê Hôm Nay</h2>
 
-      <ion-button expand="block" color="primary" (click)="addTestVideoToCache()" class="mb-4">
-        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-        Thêm Test Video vào Cache
-      </ion-button>
+      <div class="flex flex-col gap-4 mb-4">
+        <!-- Video quảng cáo đã phát - Nhỏ gọn -->
+        <div class="bg-blue-500 rounded-lg p-3 text-white shadow-md flex items-center justify-between" *ngIf="!subscriptionInfo.isActive">
+          <div class="flex items-center gap-3">
+            <div class="bg-white/20 rounded-full p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M15.91 11.672a.375.375 0 0 1 0 .656l-5.603 3.113a.375.375 0 0 1-.557-.328V8.887c0-.286.307-.466.557-.327l5.603 3.112Z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p class="text-xs opacity-80">Quảng cáo hôm nay</p>
+              <div class="flex items-baseline gap-1">
+                <span class="text-2xl font-bold">{{ todayStats.adsPlayed }}</span>
+                <span class="text-xs opacity-75">/ {{ adsRequiredPerDay }} lần</span>
+              </div>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="text-xs opacity-80">
+              <span *ngIf="todayStats.adsPlayed >= adsRequiredPerDay" class="text-green-200">✓ Đủ</span>
+              <span *ngIf="todayStats.adsPlayed < adsRequiredPerDay" class="text-yellow-200"
+                >{{ adsRequiredPerDay - todayStats.adsPlayed }} còn lại</span
+              >
+            </p>
+            <button
+              (click)="watchRewardedAds()"
+              [disabled]="loading"
+              class="mt-2 px-3 py-1 bg-white/20 hover:bg-white/30 disabled:bg-white/10 disabled:cursor-not-allowed rounded text-xs font-medium transition-colors"
+            >
+              {{ loading ? '⏳ Đang tải...' : '▶ Xem quảng cáo' }}
+            </button>
+          </div>
+        </div>
 
-      <div class="p-4 space-y-3">
-        <button class="px-4 py-2 rounded bg-blue-600 text-white" (click)="preload()" [disabled]="loading">
-          {{ loading ? 'Preloading…' : 'Preload Rewarded' }}
-        </button>
-
-        <button class="px-4 py-2 rounded bg-green-600 text-white" (click)="show()" [disabled]="showing">
-          {{ showing ? 'Showing…' : 'Show Rewarded' }}
-        </button>
-
-        <div class="text-sm text-gray-300">
-          <div>status: {{ status }}</div>
-          <div *ngIf="reward">reward: {{ reward.type }} × {{ reward.amount }}</div>
-          <div *ngIf="error" class="text-red-400">error: {{ error }}</div>
+        <!-- Video đã quay -->
+        <div class="bg-linear-to-br from-green-500 to-green-600 rounded-lg p-5 text-white shadow-lg">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center mb-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mr-2">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M12 18.75H4.5a2.25 2.25 0 0 1-2.25-2.25V9m12.841 9.091L16.5 19.5m-1.409-1.409c.407-.407.659-.97.659-1.591v-9a2.25 2.25 0 0 0-2.25-2.25h-9c-.621 0-1.184.252-1.591.659m12.182 12.182L2.909 5.909M1.5 4.5l1.409 1.409"
+                  />
+                </svg>
+                <h3 class="text-sm font-medium opacity-90 text-white!">Video Hôm Nay</h3>
+              </div>
+              <div class="text-3xl font-bold">{{ todayStats.videosRecorded }}</div>
+              <p class="text-xs opacity-75 mt-1">video hoàn thành</p>
+            </div>
+            <div class="bg-white/20 rounded-full p-4">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="bg-gray-100 rounded-lg p-4">
-      <h3 class="font-semibold mb-2">Hướng dẫn test:</h3>
-      <ul class="text-sm text-gray-700 space-y-1">
-        <li>1. Click button để thêm fake video vào cache</li>
-        <li>2. Sync widget sẽ xuất hiện ở góc phải màn hình</li>
-        <li>3. Test minimize/expand animation</li>
-        <li>4. Widget sẽ tự động sync video (có thể fail do fake data)</li>
-      </ul>
+      <!-- 💎 VIP Subscription Card -->
+      <div class="mb-4" *ngIf="!subscriptionInfo.isActive">
+        <div class="bg-linear-to-br from-purple-600 via-purple-500 to-pink-500 rounded-xl p-5 text-white shadow-xl overflow-hidden relative">
+          <!-- Decorative background -->
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
+
+          <!-- Content -->
+          <div class="relative z-10">
+            <!-- Header with badge -->
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <div class="bg-yellow-300 text-purple-900 rounded-full p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="text-xs font-semibold opacity-90">VIP</div>
+                  <div class="text-sm font-bold">Bỏ Tất Cả Quảng Cáo</div>
+                </div>
+              </div>
+              <span class="bg-yellow-300 text-purple-900 text-xs font-bold px-2 py-1 rounded-full">-50%</span>
+            </div>
+
+            <!-- Features -->
+            <div class="space-y-2 mb-4">
+              <div class="flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span>Không quảng cáo Banner</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span>Không quảng cáo xen kẽ</span>
+              </div>
+              <div class="flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                </svg>
+                <span>Truy cập không giới hạn</span>
+              </div>
+            </div>
+
+            <!-- Price and Button -->
+            <div class="flex items-center justify-between pt-4 border-t border-white/20">
+              <div>
+                <div class="text-xs opacity-90">Giá chỉ</div>
+                <div class="text-2xl font-bold">
+                  990<span class="text-sm opacity-90">đ</span>
+                  <span class="text-xs font-normal opacity-75">/ngày</span>
+                </div>
+              </div>
+              <button
+                (click)="navigateToVipSubscription()"
+                class="bg-white text-purple-600! font-bold px-6 py-2 rounded-lg hover:bg-yellow-100 transition-colors shadow-lg active:scale-95"
+              >
+                Đăng Ký
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✓ VIP Active Badge -->
+      <div class="mb-4" *ngIf="subscriptionInfo.isActive">
+        <div class="bg-linear-to-r from-green-500 to-emerald-600 rounded-xl p-4 text-white shadow-lg flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="bg-white/20 rounded-full p-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" class="w-5 h-5">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+            <div>
+              <div class="font-bold">VIP Active</div>
+              <div class="text-xs opacity-90">Tất cả quảng cáo đã được loại bỏ 🎉</div>
+            </div>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- ⚠️ VIP Pending Cancellation Card -->
+      <div class="mb-4" *ngIf="subscriptionInfo.isActive && isPendingCancel">
+        <div class="bg-linear-to-r from-orange-400 to-red-500 rounded-xl p-4 text-white shadow-lg">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="bg-white/20 rounded-full p-2 shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 9v3.75m-9.303 3.376c.865.865 2.291 1.379 3.795 1.379H18.75c1.503 0 2.929-.514 3.794-1.379M9 16.5v1.5m6-1.5v1.5m-5.25-5.25a3.375 3.375 0 1 1 6.75 0 3.375 3.375 0 0 1-6.75 0Z"
+                />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <h3 class="font-bold text-sm">Bạn đã hủy gói VIP</h3>
+              <p class="text-xs opacity-90 mt-1">
+                Bạn vẫn sẽ được hưởng quyền lợi VIP cho đến khi hết hạn vào ngày {{ formatDate(subscriptionInfo.expiryDate) }}.
+              </p>
+              <p class="text-xs opacity-90 mt-1">Nâng cấp lại ngay hoặc tiếp tục sử dụng VIP để không gián đoạn</p>
+            </div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-2">
+            <!-- Nâng Cấp Lại Button -->
+            <button
+              *ngIf="!subscriptionInfo.isActive || isPendingCancel"
+              (click)="navigateToVipSubscription()"
+              class="flex-1 bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 !text-white font-bold py-2 px-3 rounded-lg transition-colors shadow-md"
+            >
+              Nâng Cấp gói VIP mới
+            </button>
+
+            <!-- Tiếp Tục Button -->
+            <button
+              (click)="reactivateSubscription()"
+              class="flex-1 bg-white/20 hover:bg-white/30 text-white font-bold py-2 px-3 rounded-lg transition-colors text-sm border border-white/30"
+            >
+              Tiếp Tục sử dụng VIP
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Thông báo yêu cầu xem quảng cáo -->
+      <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4" *ngIf="!subscriptionInfo.isActive">
+        <div class="flex items-start gap-3">
+          <div class="support-message ion-padding">
+            <p class="message-title font-bold text-gray-900 mb-3">🙏 Sinh viên làm app...</p>
+            <p class="message-text">
+              Em làm app có 1 mình à, đam mê làm cái app này để giúp mọi người đỡ khoảng chi phí mất hàng hoặc tráo hàng. Mỗi khoản donate hoặc mua
+              gói VIP từ mọi người đều giúp em tiếp tục cố gắng phục vụ bạn tốt hơn. Thật lòng cảm ơn! 💙
+            </p>
+            <p class="message-text">
+              À quên! App của em có quảng cáo nữa, nhưng em biết quảng cáo rất khó chịu nên em để nó ở mức tối thiểu rồi. Nếu anh/chị nào có điều kiện
+              thì ủng hộ em để em có thể phát triển app tốt hơn nữa nhé! 🥹
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </ion-content>

@@ -1,0 +1,151 @@
+/* Recovery Status Widget - Minimal base styles */
+:host {
+  .recovery-widget {
+    position: fixed;
+    top: 20px;
+    left: 20px; /* Position on left side, sync is on right */
+    background: var(--ion-color-light);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    z-index: 9999;
+    min-width: 240px;
+    max-width: 300px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-origin: top left;
+
+    &.minimized {
+      min-width: auto;
+      max-width: auto;
+      padding: 12px;
+
+      .recovery-info,
+      .recovery-title {
+        display: none;
+      }
+    }
+
+    &.recovering {
+      background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+      border: 1px solid rgba(33, 150, 243, 0.3);
+
+      ion-icon[name="layers"] {
+        animation: spin 2s linear infinite;
+      }
+    }
+
+    &.completed {
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+
+    &.error {
+      background: linear-gradient(135deg, #ffebee 0%, #ffe0b2 100%);
+      border: 1px solid rgba(244, 67, 54, 0.3);
+    }
+  }
+
+  .recovery-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: #333;
+
+    ion-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+
+      &.spinning {
+        animation: spin 2s linear infinite;
+      }
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .recovery-title {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      font-weight: 600;
+    }
+  }
+
+  .recovery-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+
+    .progress-text {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #555;
+      min-height: 28px;
+
+      &.text-center {
+        justify-content: center;
+        text-align: center;
+      }
+
+      .failed-count {
+        color: #ff4d4f;
+        font-weight: 600;
+      }
+
+      p {
+        margin: 0;
+        font-size: 11px;
+        color: #666;
+      }
+    }
+  }
+
+  .recover-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+/* Responsive - hide on very small screens */
+@media (max-width: 480px) {
+  :host {
+    .recovery-widget {
+      min-width: 220px;
+      max-width: 280px;
+      top: 10px;
+      left: 10px;
+      padding: 12px;
+
+      .recovery-header .recovery-title {
+        font-size: 12px;
+      }
+
+      .recovery-info .progress-text {
+        font-size: 11px;
+      }
+    }
+  }
+}

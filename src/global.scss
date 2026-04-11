@@ -1,6 +1,9 @@
 /*
  * App Global CSS
- * ----------------------------------------------------------------------------
+ * ---------------------
+
+------
+
  * Put style rules here that you want to apply globally. These styles are for
  * the entire app and not just one component. Additionally, this file can be
  * used as an entry point to import other CSS/Sass files to be included in the
@@ -9,10 +12,20 @@
  * https://ionicframework.com/docs/layout/global-stylesheets
  */
 
+// Theme imports - @use rules must come before all other rules
+@use "./theme/custom-radio.scss" as *;
+@use "./theme/ng-zorro-custom.scss" as *;
+@use "./theme/qrscanner.scss" as *;
+@use "./theme/custom-ng-otp-input.scss" as *;
+@use "./theme/custom-ion-action-sheet.scss" as *;
+@use "./app/shared/components/sync-status-widget/sync-status-widget-base.scss" as *;
+@use "./app/shared/components/sync-status-widget/sync-status-widget-animations.scss" as *;
+@use "./app/shared/components/sync-status-widget/sync-status-widget-responsive.scss" as *;
+
 /* Core CSS required for Ionic components to work properly */
 
 //Ng zorro
-  @import "@ionic/angular/css/core.css";
+@import "@ionic/angular/css/core.css";
 
 /* Basic CSS for apps built with Ionic */
 @import "@ionic/angular/css/structure.css";
@@ -34,17 +47,6 @@
 
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import "./theme/custom-radio.scss";
-@import "./theme/ng-zorro-custom.scss";
-@import "./theme/qrscanner.scss";
-@import "./theme/custom-ng-otp-input.scss";
-@import "./theme/custom-ion-action-sheet.scss";
-@import "./theme/web.scss";
-
-// Sync status widget styles - moved to global to avoid component budget limits
-@import "./app/shared/components/sync-status-widget/sync-status-widget-base.scss";
-@import "./app/shared/components/sync-status-widget/sync-status-widget-animations.scss";
-@import "./app/shared/components/sync-status-widget/sync-status-widget-responsive.scss";
 
 .tabs-inner {
   margin-bottom: -35px !important;
@@ -76,7 +78,7 @@ ion-toolbar {
     position: relative;
     overflow: hidden;
     opacity: 0.97;
-    padding-top: var(--ion-safe-area-top, 0);
+    padding-top: 80px; // Space for banner ads
     display: flex;
     flex-direction: column;
     justify-content: end;
@@ -92,6 +94,8 @@ ion-toolbar {
 
 ion-content {
   --ion-background-color: white;
+  /* Ensure content respects safe areas (Android nav buttons) */
+  --padding-bottom: max(20px, env(safe-area-inset-bottom)) !important;
 }
 
 ion-router-outlet[tabs="true"] > .ion-page {

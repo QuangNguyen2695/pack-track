@@ -34,14 +34,38 @@
   </div>
 
   <!-- Progress Info - với scale animation -->
-  <div class="sync-info" *ngIf="progress.totalVideos > 0 && !isMinimized">
-    <div class="progress-text justify-between items-center h-[28px]">
+  <div class="sync-info" *ngIf="(progress.totalVideos > 0 || progress.status === 'no-videos') && !isMinimized">
+    <!-- No Videos Found: Complete notification -->
+    <div class="progress-text justify-between items-center h-7" *ngIf="progress.status === 'no-videos'">
       <div class="flex items-center gap-2">
-        <span> {{ progress.completedVideos + progress.failedVideos }}/{{ progress.totalVideos }} video</span>
+        <span class="text-sm">✅ Không có video cũ cần xóa - Hoàn tất</span>
+      </div>
+    </div>
+
+    <!-- Scanning Status: Show scan count with start message -->
+    <div class="progress-text justify-between items-center h-7" *ngIf="progress.status === 'scanning'">
+      <div class="flex items-center gap-2">
+        <span class="text-sm">📥 Bắt đầu xóa {{progress.scanCount}} video cũ (chờ vài giây...)</span>
+      </div>
+    </div>
+
+    <!-- Active Deletion: Show progress -->
+    <div class="progress-text justify-between items-center h-7" *ngIf="progress.status === 'syncing'">
+      <div class="flex items-center gap-2">
+        <span> {{ progress.completedVideos }}/{{ progress.totalVideos }} video (xóa: {{ progress.deletedVideos }})</span>
+        <span *ngIf="progress.failedVideos > 0" class="failed-count"> ({{ progress.failedVideos }} lỗi) </span>
+      </div>
+    </div>
+
+    <!-- Completed/Error: Show result -->
+    <div class="progress-text justify-between items-center h-7" *ngIf="progress.status === 'completed' || progress.status === 'error'">
+      <div class="flex items-center gap-2">
+        <span *ngIf="progress.status === 'completed'"> ✅ Đã xóa {{ progress.deletedVideos }}/{{ progress.totalVideos }} video - Hoàn tất</span>
+        <span *ngIf="progress.status === 'error'"> ❌ Lỗi xóa video</span>
         <span *ngIf="progress.failedVideos > 0" class="failed-count"> ({{ progress.failedVideos }} lỗi) </span>
       </div>
       <div class="sync-actions" *ngIf="!progress.isActive">
-        <ion-button size="small" fill="clear" (click)="onRetrySync()" *ngIf="progress.status === 'error' || progress.failedVideos > 0">
+        <ion-button size="small" fill="clear" (click)="onRetryDelete()" *ngIf="progress.status === 'error' || progress.failedVideos > 0">
           <ion-icon name="refresh" slot="start"></ion-icon>
           Thử lại
         </ion-button>
@@ -55,6 +79,7 @@
       [nzStrokeWidth]="8"
       [nzShowInfo]="false"
       nzSize="small"
+      *ngIf="progress.status !== 'no-videos'"
     ></nz-progress>
   </div>
 

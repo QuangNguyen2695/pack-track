@@ -1,19 +1,19 @@
 import { Component, ElementRef, OnDestroy, OnInit, ViewChild, NgZone, ChangeDetectorRef } from "@angular/core";
-import { Platform, ToastController, AlertController } from "@ionic/angular";
+import { Platform, ToastController } from "@ionic/angular";
+import { Router } from "@angular/router";
 import { Capacitor } from "@capacitor/core";
 
 import { SoundService } from "@rsApp/shared/services/sound-service/sound-service";
 import { LoadingService } from "@rsApp/shared/services/loadding-service/loading.service";
-import { CredentialService } from "@rsApp/shared/services/credential-service/credential.service";
 import { DeviceInfoService } from "@rsApp/shared/services/device/device-info.service";
 import { PackService } from "@rsApp/shared/services/pack-service/pack.service";
-import { VideoCacheService } from "@rsApp/shared/services/video-cache/video-cache.service";
+import { StatisticsService } from "@rsApp/shared/services/statistics/statistics.service";
+import { AdmobService } from "@rsApp/shared/services/admob-service/dmob.service";
 
 import { CameraBarcode } from "../../../plugin/CameraXScanner";
 import { Filesystem } from "@capacitor/filesystem";
 import { KeepAwake } from "@capacitor-community/keep-awake";
-import { ENV } from "src/environments/environment.development";
-import { CapsService } from "@rsApp/shared/services/caps-service/caps.service";
+import { ENV } from "@app/env";
 
 type RecState = "idle" | "previewing" | "starting" | "recording" | "stopping";
 
@@ -77,7 +77,11 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   // Cờ bật/tắt hiện ngày giờ trên preview & video
   timestampEnabled = true;
   // Cờ bật/tắt ghi âm
-  audioEnabled = true;
+  audioEnabled = false;
+
+  // Return video tracking
+  recordMode?: "normal" | "return"; // 'normal' for regular recording, 'return' for return video
+  returnOrderId?: string; // Order code passed from pack-detail for return video
 
   // Metadata video hiện tại
   video: VideoMeta | null = null;
@@ -86,15 +90,14 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     private platform: Platform,
     private zone: NgZone,
     private cdr: ChangeDetectorRef,
+    private router: Router,
     private sound: SoundService,
     private loading: LoadingService,
-    private credential: CredentialService,
     private deviceInfo: DeviceInfoService,
     private packService: PackService,
-    private videoCacheService: VideoCacheService,
     private toastCtl: ToastController,
-    private alertCtl: AlertController,
-    public caps: CapsService,
+    private statisticsService: StatisticsService,
+    private ads: AdmobService,
   ) {}
 
   ngOnInit(): void {
@@ -104,17 +107,16 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       if (saved !== null) this.autoSaveEnabled = saved === "1";
     } catch {}
 
-    // Khôi phục cấu hình timestamp từ localStorage (mặc định bật)
-    try {
-      const t = localStorage.getItem("timestampEnabled");
-      if (t !== null) this.timestampEnabled = t === "1";
-    } catch {}
-
-    // Khôi phục cấu hình audio từ localStorage (mặc định bật)
-    try {
-      const a = localStorage.getItem("audioEnabled");
-      if (a !== null) this.audioEnabled = a === "1";
-    } catch {}
+    // Check for return video mode and order code
+    const navigation = this.router.getCurrentNavigation();
+    if (navigation?.extras?.state) {
+      const state = navigation.extras.state;
+      if (state["recordMode"] === "return") {
+        this.recordMode = "return";
+        this.returnOrderId = state["orderCode"];
+        console.log(`🎥 [ScanRecord] Return video mode enabled for order: ${this.returnOrderId}`);
+      }
+    }
   }
 
   async ngOnDestroy(): Promise<void> {
@@ -135,8 +137,17 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
     } catch {}
     this.stopInactivityWatch();
-    document.body.classList.remove("camera-preview-active", "qrscanner");
     this.stopCounter();
+
+    // Cleanup all states
+    this.recording = false;
+    this.recState = "idle";
+    this.barcodeBusy = false;
+    this.barcodeCooldownUntil = 0;
+    this.currentCode = null;
+    this.video = null;
+
+    document.body.classList.remove("camera-preview-active", "qrscanner");
   }
 
   async ionViewWillLeave() {
@@ -157,15 +168,25 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       if (this.recState === "recording") await CameraBarcode.stopRecording();
     } catch {}
     this.stopInactivityWatch();
-    document.body.classList.remove("qrscanner", "camera-preview-active");
     this.stopCounter();
+
+    // Cleanup all states when leaving page
     this.recording = false;
     this.recState = "idle";
+    this.barcodeBusy = false;
+    this.barcodeCooldownUntil = 0;
+    this.currentCode = null;
+    this.video = null;
+
+    document.body.classList.remove("qrscanner", "camera-preview-active");
+
+    // Kiểm tra và hiển thị quảng cáo nếu chưa đủ số lần trong ngày
+    await this.ads.checkAndShowRewardAd();
   }
 
   async ionViewWillEnter() {
     // Giữ màn hình sáng khi vào trang scan
-    if (!ENV.isWebApp && (this.platform.is("ios") || this.platform.is("android"))) {
+    if (this.platform.is("ios") || this.platform.is("android")) {
       try {
         await KeepAwake.keepAwake();
         console.log("Keep awake activated");
@@ -178,11 +199,26 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
   // =================== PREVIEW ===================
   async startInlinePreview() {
-    setTimeout(() => document.body.classList.add("camera-preview-active"), 300);
-    this.infoText = "Đang mở camera...";
+    try {
+      this.infoText = "Đang mở camera...";
 
-    await CameraBarcode.removeAllListeners().catch(() => {}); // tránh nhân listener
-    await CameraBarcode.startPreview({ toBack: true, withAudio: this.audioEnabled });
+      // Start camera - plugin will automatically request permissions if needed
+      await CameraBarcode.removeAllListeners().catch(() => {});
+      await CameraBarcode.startPreview({ toBack: true, withAudio: false });
+
+      // Success! Camera is accessible
+      await this.onCameraStartSuccess();
+    } catch (error) {
+      console.error("❌ [ScanRecord] Error in startInlinePreview:", error);
+      this.infoText = "❌ Không thể mở camera";
+    }
+  }
+
+  /**
+   * Called when camera preview started successfully
+   */
+  private async onCameraStartSuccess() {
+    setTimeout(() => document.body.classList.add("camera-preview-active"), 300);
     this.recState = "previewing";
     this.infoText = "Sẵn sàng quét mã";
 
@@ -212,6 +248,12 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   private async handleBarcodeEvent(code: string | null, now: number) {
+    // Disable barcode scanning in return video mode - use manual button instead
+    if (this.recordMode === "return") {
+      console.log(`📦 [ScanRecord] Return video mode - barcode scan disabled, use manual button`);
+      return;
+    }
+
     if (!code) return;
 
     // nếu vẫn là mã hiện tại và cờ bật → cập nhật last seen để tránh autosave
@@ -268,17 +310,20 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     // 2) Dừng clip hiện tại để lấy file (bắt buộc phải await)
     const savedUri = await this.stopRecordingAndGetPath();
 
-    // 3) Bắt đầu SAVE ở HẬU CẢNH (không chờ) + voice "saving" → "success"
+    // 3) SNAPSHOT video cũ TRƯỚC KHI bắt đầu video mới (tránh race condition)
+    const oldVideo = this.video ? { ...this.video } : null;
+
+    // 4) Bắt đầu SAVE ở HẬU CẢNH (không chờ) + voice "saving" → "success"
     (async () => {
       this.savingInProgress = true;
       try {
-        await this.persistPack(savedUri).catch(() => {});
+        await this.persistPack(savedUri, oldVideo).catch(() => {});
       } finally {
         this.savingInProgress = false;
       }
     })().catch(() => {});
 
-    // 4) (tuỳ chọn) nghỉ rất ngắn cho encoder nhả resource rồi QUAY LẠI NGAY với mã mới
+    // 5) (tuỳ chọn) nghỉ rất ngắn cho encoder nhả resource rồi QUAY LẠI NGAY với mã mới
     await this.sleep(120);
     if (nextCode) {
       await this.startRecordingForCode(nextCode);
@@ -331,6 +376,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         ({ recordingId } = await CameraBarcode.startRecording({
           fileNamePrefix: code,
           quality: "hd", // prefer hd for better 16:9; plugin will also try to fallback
+          isReturn: this.recordMode === "return", // truyền cờ return để plugin áp dụng cấu hình tối ưu cho return video
         } as any));
       } catch {}
       console.log("recordingId", recordingId);
@@ -384,13 +430,42 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       if (this.recState === "recording") {
         this.stopCounter();
         const savedUri = await this.stopRecordingAndGetPath();
-        await this.persistPack(savedUri).catch(() => {});
+        const videoSnapshot = this.video ? { ...this.video } : null;
+        await this.persistPack(savedUri, videoSnapshot).catch(() => {});
         await this.safePlay(this.successVoice);
       }
     } finally {
       this.resetCounter();
       this.loading.loadingOff();
       this.savingInProgress = false;
+    }
+  }
+
+  /** Manual start recording for return video mode */
+  async startReturnVideoRecording() {
+    if (!this.returnOrderId) {
+      await this.toast("❌ Không có OrderCode từ pack");
+      return;
+    }
+
+    if (this.recording) {
+      await this.toast("⚠️ Đang quay video, vui lòng dừng trước");
+      return;
+    }
+
+    try {
+      this.loading.loadingOn();
+      console.log(`🎥 [ScanRecord] Starting manual return video for order: ${this.returnOrderId}`);
+
+      // Start recording with the orderCode from pack-detail
+      await this.startRecordingForCode(this.returnOrderId);
+
+      await this.safePlay(this.newOrderVoice);
+      this.loading.loadingOff();
+    } catch (error) {
+      console.error("❌ [ScanRecord] Failed to start return video:", error);
+      await this.toast("❌ Lỗi khi bắt đầu quay");
+      this.loading.loadingOff();
     }
   }
 
@@ -570,7 +645,8 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     try {
       await this.safePlay(this.savingOrderVoice);
       const savedUri = await this.stopRecordingAndGetPath(); // đã stop & cập nhật this.video
-      await this.persistPack(savedUri).catch(() => {});
+      const videoSnapshot = this.video ? { ...this.video } : null;
+      await this.persistPack(savedUri, videoSnapshot).catch(() => {});
       await this.safePlay(this.successVoice);
     } finally {
       this.resetCounter();
@@ -579,13 +655,11 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   // =================== PACK PERSIST ===================
-  private async persistPack(savedUri?: string) {
+  private async persistPack(savedUri?: string, videoData?: VideoMeta | null) {
     try {
-      const currentUser: any = await this.credential.getCurrentUser();
-      const userId = currentUser?._id;
       const dev = await this.deviceInfo.getDeviceInfo();
 
-      const v = this.video ?? { orderCode: this.currentCode ?? null };
+      const v = videoData ?? this.video ?? { orderCode: this.currentCode ?? null };
       const uri = savedUri ?? v.videoUri;
 
       let size = v.videoFileSize;
@@ -593,8 +667,19 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         size = await this.getFileSizeBytes(uri);
       }
 
+      // Generate thumbnail from video
+      let thumbnailBase64: string | undefined;
+      if (uri) {
+        thumbnailBase64 = await this.generateThumbnail(uri);
+      }
+
+      // Generate incrementing _id with UUID prefix
+      const timestamp = Date.now();
+      const uniqueId = Math.floor(Math.random() * 10000);
+      const incrementingId = `${timestamp}-${uniqueId}`;
+
       const payload = {
-        userId,
+        _id: incrementingId,
         deviceId: dev.deviceId,
         packNumber: v.orderCode || this.currentCode || "UNKNOWN",
         orderCode: v.orderCode || this.currentCode || undefined,
@@ -608,57 +693,43 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         videoFileName: v.videoFileName ?? (v.orderCode ? `${v.orderCode}.mp4` : undefined),
         videoFileSize: size,
         videoMimeType: v.videoMimeType ?? "video/mp4",
+        thumbnailStorage: thumbnailBase64 ? ("local" as const) : undefined,
+        thumbnailBase64: thumbnailBase64,
+        videoType: this.recordMode === "return" ? ("return" as const) : ("normal" as const),
         appVersion: dev.appVersion,
         notes: undefined,
       };
 
-      // Thử gọi API save video
-      this.packService.create(payload).subscribe({
+      // Use separate storage for return videos
+      const createMethod = this.recordMode === "return" ? this.packService.createPackReturn(payload) : this.packService.create(payload);
+
+      createMethod.subscribe({
         next: (result) => {
           if (result && result._id) {
-            console.log("Video saved successfully to API:", result._id);
+            this.statisticsService.incrementVideosRecorded();
+            console.log(`✅ [ScanRecord] Video saved: ${result._id}, type: ${result.videoType}`);
+
+            // Navigate back to pack-detail for return videos
+            if (this.recordMode === "return") {
+              console.log(`📦 [ScanRecord] Return video saved, navigating back to pack-detail`);
+              setTimeout(() => {
+                this.router.navigate(["/tabs/home"]); // Go back to home/packs list
+              }, 1500);
+            }
           } else {
             // API trả về nhưng không thành công, cache video
-            this.cacheVideoOnFailure(payload);
           }
         },
         error: (error) => {
           console.error("API save failed, caching video:", error);
           // Cache video khi API call fail
-          this.cacheVideoOnFailure(payload);
+          // Vẫn tăng counter vì video đã được quay
+          this.statisticsService.incrementVideosRecorded();
+          // Cache video khi API call fail
         },
       });
     } catch (error) {
       console.error("Failed to persist pack:", error);
-    }
-  }
-
-  /**
-   * Cache video khi API save thất bại
-   */
-  private async cacheVideoOnFailure(payload: any) {
-    try {
-      await this.videoCacheService.cacheVideo(payload);
-
-      console.log("Video cached successfully for retry later");
-
-      // Hiển thị thông báo cho user
-      const toast = await this.toastCtl.create({
-        message: "Video đã được lưu tạm thời. Sẽ tự động đồng bộ khi có mạng.",
-        duration: 3000,
-        color: "warning",
-        position: "bottom",
-      });
-      await toast.present();
-    } catch (error) {
-      console.error("Failed to cache video:", error);
-      const toast = await this.toastCtl.create({
-        message: "Lỗi lưu video. Vui lòng thử lại.",
-        duration: 3000,
-        color: "danger",
-        position: "bottom",
-      });
-      await toast.present();
     }
   }
 
@@ -678,6 +749,111 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     return undefined;
   }
 
+  /**
+   * Generate thumbnail from video file as base64
+   */
+  private async generateThumbnail(videoPath: string): Promise<string | undefined> {
+    return new Promise((resolve) => {
+      try {
+        // Convert local path to web-accessible URL
+        const videoUrl = Capacitor.convertFileSrc(videoPath);
+
+        // Create video element
+        const video = document.createElement("video");
+        video.src = videoUrl;
+        video.crossOrigin = "anonymous";
+
+        // Seek to first frame then capture
+        const onLoadedMetadata = () => {
+          try {
+            video.currentTime = 0;
+          } catch (e) {
+            video.currentTime = 0.5; // fallback to 0.5s if seek fails
+          }
+        };
+
+        const onSeeked = () => {
+          try {
+            // Create canvas and capture frame - scaled down for thumbnail
+            const canvas = document.createElement("canvas");
+            const videoWidth = video.videoWidth || 1280;
+            const videoHeight = video.videoHeight || 720;
+
+            // Scale to smaller thumbnail (160x90)
+            const thumbWidth = 160;
+            const thumbHeight = Math.round((videoHeight / videoWidth) * thumbWidth);
+
+            canvas.width = thumbWidth;
+            canvas.height = thumbHeight;
+
+            const ctx = canvas.getContext("2d");
+            if (!ctx) {
+              cleanup();
+              resolve(undefined);
+              return;
+            }
+
+            ctx.drawImage(video, 0, 0, thumbWidth, thumbHeight);
+
+            // Convert to base64 with lower quality and compress
+            let base64 = canvas.toDataURL("image/jpeg", 0.5); // 50% quality for smaller size
+
+            // If base64 is too large (>50KB), don't send it
+            // Rough estimate: 1 char ≈ 0.75 bytes, so 50KB ≈ 66k chars
+            if (base64.length > 66000) {
+              console.warn("Thumbnail too large, skipping:", base64.length, "chars");
+              cleanup();
+              resolve(undefined);
+              return;
+            }
+
+            // Remove "data:image/jpeg;base64," prefix for storage
+            base64 = base64.replace(/^data:image\/jpeg;base64,/, "");
+
+            cleanup();
+            resolve(base64);
+          } catch (e) {
+            console.error("Error generating thumbnail:", e);
+            cleanup();
+            resolve(undefined);
+          }
+        };
+
+        const cleanup = () => {
+          video.removeEventListener("loadedmetadata", onLoadedMetadata);
+          video.removeEventListener("seeked", onSeeked);
+          video.removeEventListener("error", onError);
+          try {
+            video.pause();
+            video.src = "";
+          } catch {}
+        };
+
+        const onError = () => {
+          console.error("Error loading video for thumbnail");
+          cleanup();
+          resolve(undefined);
+        };
+
+        video.addEventListener("loadedmetadata", onLoadedMetadata);
+        video.addEventListener("seeked", onSeeked);
+        video.addEventListener("error", onError);
+
+        // Start loading
+        video.load();
+
+        // Timeout: if can't generate thumbnail in 5s, give up
+        setTimeout(() => {
+          cleanup();
+          resolve(undefined);
+        }, 5000);
+      } catch (e) {
+        console.error("Failed to generate thumbnail:", e);
+        resolve(undefined);
+      }
+    });
+  }
+
   // =================== UTILS ===================
   private sleep(ms: number) {
     return new Promise<void>((r) => setTimeout(r, ms));
@@ -690,55 +866,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private async toast(message: string) {
     const t = await this.toastCtl.create({ message, duration: 1800, position: "bottom" });
     await t.present();
-  }
-
-  /**
-   * Đồng bộ thủ công các video cache
-   */
-  async syncCachedVideos() {
-    try {
-      const pendingCount = await this.videoCacheService.getPendingSyncCount();
-
-      if (pendingCount === 0) {
-        const toast = await this.toastCtl.create({
-          message: "Không có video nào cần đồng bộ",
-          duration: 2000,
-          color: "primary",
-          position: "bottom",
-        });
-        await toast.present();
-        return;
-      }
-
-      await this.videoCacheService.syncWithLoading();
-
-      const remainingCount = await this.videoCacheService.getPendingSyncCount();
-      const syncedCount = pendingCount - remainingCount;
-
-      const toast = await this.toastCtl.create({
-        message: `Đã đồng bộ ${syncedCount}/${pendingCount} video thành công`,
-        duration: 3000,
-        color: syncedCount === pendingCount ? "success" : "warning",
-        position: "bottom",
-      });
-      await toast.present();
-    } catch (error) {
-      console.error("Manual sync failed:", error);
-      const toast = await this.toastCtl.create({
-        message: "Lỗi đồng bộ video. Vui lòng thử lại.",
-        duration: 3000,
-        color: "danger",
-        position: "bottom",
-      });
-      await toast.present();
-    }
-  }
-
-  /**
-   * Xem số lượng video chưa đồng bộ
-   */
-  async getCachedVideoCount(): Promise<number> {
-    return await this.videoCacheService.getPendingSyncCount();
   }
 
   /**

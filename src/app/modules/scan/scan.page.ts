@@ -62,7 +62,7 @@ export class ScanPage implements OnInit, OnDestroy {
     try {
       const allowDup = localStorage.getItem("allowDuplicates");
       if (allowDup !== null) this.allowDuplicates = allowDup === "1";
-      
+
       const singleMode = localStorage.getItem("allowSingleBarcode");
       if (singleMode !== null) this.allowSingleBarcode = singleMode === "1";
     } catch {}
@@ -76,7 +76,7 @@ export class ScanPage implements OnInit, OnDestroy {
     } catch (error) {
       console.warn("Failed to deactivate keep awake:", error);
     }
-    
+
     await CameraBarcode.removeAllListeners().catch(() => {});
     document.body.classList.remove("camera-preview-active", "qrscanner");
   }
@@ -89,7 +89,7 @@ export class ScanPage implements OnInit, OnDestroy {
     } catch (error) {
       console.warn("Failed to deactivate keep awake:", error);
     }
-    
+
     await CameraBarcode.removeAllListeners().catch(() => {});
     document.body.classList.remove("qrscanner", "camera-preview-active");
     this.scanning = false;
@@ -97,7 +97,7 @@ export class ScanPage implements OnInit, OnDestroy {
 
   async ionViewWillEnter() {
     // Giữ màn hình sáng khi vào trang scan
-    if (!ENV.isWebApp && (this.platform.is("ios") || this.platform.is("android"))) {
+    if (this.platform.is("ios") || this.platform.is("android")) {
       try {
         await KeepAwake.keepAwake();
         console.log("Keep awake activated");
@@ -149,8 +149,8 @@ export class ScanPage implements OnInit, OnDestroy {
       this.scanBusy = true;
 
       // Kiểm tra xem có phải barcode trùng không
-      const isDuplicate = this.scannedItems.some(item => item.barcode === code);
-      
+      const isDuplicate = this.scannedItems.some((item) => item.barcode === code);
+
       if (isDuplicate && !this.allowDuplicates) {
         await this.toast(`⚠️ Mã "${code}" đã được quét trước đó`);
         this.scanCooldownUntil = now + 1000;
@@ -168,7 +168,7 @@ export class ScanPage implements OnInit, OnDestroy {
       const newItem: ScannedItem = {
         barcode: code,
         timestamp: new Date(),
-        format: format
+        format: format,
       };
 
       this.scannedItems.unshift(newItem); // Thêm vào đầu danh sách (mới nhất trước)
@@ -184,9 +184,8 @@ export class ScanPage implements OnInit, OnDestroy {
       this.cdr.detectChanges();
 
       this.scanCooldownUntil = now + 500; // Cooldown ngắn hơn cho scan
-
     } catch (error) {
-      console.error('Scan handling error:', error);
+      console.error("Scan handling error:", error);
       await this.toast("❌ Lỗi xử lý mã quét");
     } finally {
       this.scanBusy = false;
@@ -196,57 +195,54 @@ export class ScanPage implements OnInit, OnDestroy {
   // =================== ACTION BUTTONS ===================
   async toggleTorch() {
     try {
-      console.log('Current torch state:', this.torchOn);
-      console.log('Current scanning state:', this.scanning);
-      
+      console.log("Current torch state:", this.torchOn);
+      console.log("Current scanning state:", this.scanning);
+
       // Kiểm tra xem có đang ở trạng thái có thể sử dụng torch không
       if (!this.scanning) {
-        console.warn('Cannot toggle torch: camera not started');
-        await this.toast('Vui lòng bật camera trước khi sử dụng đèn pin');
+        console.warn("Cannot toggle torch: camera not started");
+        await this.toast("Vui lòng bật camera trước khi sử dụng đèn pin");
         return;
       }
 
       // Kiểm tra platform
-      if (!this.platform.is('ios') && !this.platform.is('android')) {
-        console.warn('Torch not supported on this platform');
-        await this.toast('Đèn pin chỉ hỗ trợ trên mobile');
+      if (!this.platform.is("ios") && !this.platform.is("android")) {
+        console.warn("Torch not supported on this platform");
+        await this.toast("Đèn pin chỉ hỗ trợ trên mobile");
         return;
       }
 
       const newTorchState = !this.torchOn;
-      console.log('Setting torch to:', newTorchState);
-      
+      console.log("Setting torch to:", newTorchState);
+
       // Thử set torch với timeout
       const torchPromise = CameraBarcode.setTorchState(newTorchState);
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Torch operation timeout')), 5000)
-      );
-      
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Torch operation timeout")), 5000));
+
       await Promise.race([torchPromise, timeoutPromise]);
-      
+
       // Chỉ cập nhật state khi API call thành công
       this.torchOn = newTorchState;
-      console.log('Torch toggled successfully to:', this.torchOn);
-      
+      console.log("Torch toggled successfully to:", this.torchOn);
+
       // Feedback cho user
-      const message = this.torchOn ? '🔦 Đã bật đèn pin' : '🔦 Đã tắt đèn pin';
+      const message = this.torchOn ? "🔦 Đã bật đèn pin" : "🔦 Đã tắt đèn pin";
       await this.toast(message);
-      
     } catch (error) {
-      console.error('Failed to toggle torch:', error);
-      
+      console.error("Failed to toggle torch:", error);
+
       // Reset torch state về false nếu có lỗi
       this.torchOn = false;
-      
-      let errorMessage = 'Không thể bật/tắt đèn pin';
+
+      let errorMessage = "Không thể bật/tắt đèn pin";
       if (error instanceof Error) {
-        if (error.message.includes('timeout')) {
-          errorMessage = 'Đèn pin không phản hồi. Vui lòng thử lại';
-        } else if (error.message.includes('not available')) {
-          errorMessage = 'Thiết bị không hỗ trợ đèn pin';
+        if (error.message.includes("timeout")) {
+          errorMessage = "Đèn pin không phản hồi. Vui lòng thử lại";
+        } else if (error.message.includes("not available")) {
+          errorMessage = "Thiết bị không hỗ trợ đèn pin";
         }
       }
-      
+
       await this.toast(errorMessage);
     }
   }
@@ -257,10 +253,8 @@ export class ScanPage implements OnInit, OnDestroy {
     try {
       localStorage.setItem("allowDuplicates", this.allowDuplicates ? "1" : "0");
     } catch {}
-    
-    const message = this.allowDuplicates ? 
-      "✅ Cho phép quét trùng" : 
-      "🚫 Không cho phép quét trùng";
+
+    const message = this.allowDuplicates ? "✅ Cho phép quét trùng" : "🚫 Không cho phép quét trùng";
     this.toast(message);
   }
 
@@ -269,10 +263,8 @@ export class ScanPage implements OnInit, OnDestroy {
     try {
       localStorage.setItem("allowSingleBarcode", this.allowSingleBarcode ? "1" : "0");
     } catch {}
-    
-    const message = this.allowSingleBarcode ? 
-      "1️⃣ Chế độ 1 mã: BẬT" : 
-      "🔢 Chế độ nhiều mã: BẬT";
+
+    const message = this.allowSingleBarcode ? "1️⃣ Chế độ 1 mã: BẬT" : "🔢 Chế độ nhiều mã: BẬT";
     this.toast(message);
 
     // Nếu bật chế độ single và đã có nhiều hơn 1 item, giữ lại item mới nhất
@@ -309,21 +301,21 @@ export class ScanPage implements OnInit, OnDestroy {
     }
 
     const alert = await this.alertCtl.create({
-      header: 'Xác nhận xóa',
+      header: "Xác nhận xóa",
       message: `Bạn có chắc muốn xóa tất cả ${this.scannedItems.length} mã đã quét?`,
       buttons: [
         {
-          text: 'Hủy',
-          role: 'cancel'
+          text: "Hủy",
+          role: "cancel",
         },
         {
-          text: 'Xóa tất cả',
-          role: 'destructive',
+          text: "Xóa tất cả",
+          role: "destructive",
           handler: () => {
             this.clearAllItems();
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
 
     await alert.present();
@@ -355,9 +347,9 @@ export class ScanPage implements OnInit, OnDestroy {
 
   private async showExportModal(text: string) {
     const alert = await this.alertCtl.create({
-      header: 'Danh sách mã quét',
+      header: "Danh sách mã quét",
       message: `<pre style="font-size: 12px; text-align: left;">${text}</pre>`,
-      buttons: ['Đóng']
+      buttons: ["Đóng"],
     });
 
     await alert.present();
@@ -369,14 +361,13 @@ export class ScanPage implements OnInit, OnDestroy {
    */
   private async checkTorchCapabilities() {
     try {
-      console.log('Testing torch capabilities...');
-      
+      console.log("Testing torch capabilities...");
+
       // Thử bật torch một cách im lặng để test
       await CameraBarcode.setTorchState(false);
-      console.log('Torch capabilities: OK');
-      
+      console.log("Torch capabilities: OK");
     } catch (error) {
-      console.warn('Torch not available on this device:', error);
+      console.warn("Torch not available on this device:", error);
     }
   }
 
@@ -387,10 +378,10 @@ export class ScanPage implements OnInit, OnDestroy {
   }
 
   private async toast(message: string) {
-    const t = await this.toastCtl.create({ 
-      message, 
-      duration: 2000, 
-      position: "bottom" 
+    const t = await this.toastCtl.create({
+      message,
+      duration: 2000,
+      position: "bottom",
     });
     await t.present();
   }
@@ -401,7 +392,7 @@ export class ScanPage implements OnInit, OnDestroy {
   }
 
   get uniqueScanned(): number {
-    const uniqueCodes = new Set(this.scannedItems.map(item => item.barcode));
+    const uniqueCodes = new Set(this.scannedItems.map((item) => item.barcode));
     return uniqueCodes.size;
   }
 

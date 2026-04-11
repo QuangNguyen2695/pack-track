@@ -1,0 +1,67 @@
+<div
+  class="recovery-widget"
+  *ngIf="isVisible"
+  [class.recovering]="progressState.isActive"
+  [class.completed]="progressState.status === 'complete'"
+  [class.error]="progressState.status === 'error'"
+  [class.minimized]="isMinimized"
+>
+  <!-- Header -->
+  <div class="recovery-header flex items-center gap-2">
+    <ion-icon
+      [name]="getStatusIcon()"
+      [class.spinning]="progressState.isActive"
+      (click)="isMinimized && onToggleMinimize()"
+      [class]="isMinimized ? 'cursor-pointer' : ''"
+    ></ion-icon>
+
+    <!-- Title and buttons -->
+    <div *ngIf="!isMinimized" class="header-content flex-1 flex items-center justify-between">
+      <span class="recovery-title">{{ getStatusText() }}</span>
+
+      <div class="flex items-center gap-1">
+        <!-- Minimize button -->
+        <ion-button fill="clear" size="small" (click)="onToggleMinimize()" class="minimize-btn w-6 h-6 min-w-0">
+          <ion-icon name="remove" slot="icon-only" class="text-sm"></ion-icon>
+        </ion-button>
+
+        <!-- Close button -->
+        <ion-button fill="clear" size="small" (click)="onClose()" class="close-btn w-6 h-6 min-w-0">
+          <ion-icon name="close" slot="icon-only" class="text-sm"></ion-icon>
+        </ion-button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Info -->
+  <div class="recovery-info" *ngIf="progressState.totalVideos > 0 && !isMinimized">
+    <!-- Status message -->
+    <div class="progress-text justify-between items-center h-7">
+      <div class="flex items-center gap-2">
+        <span class="text-sm">
+          {{ progressState.currentCount }}/{{ progressState.totalVideos }} processed
+          <span *ngIf="progressState.recoveredCount > 0">({{ progressState.recoveredCount }} recovered)</span>
+          <span *ngIf="progressState.failedCount > 0" class="failed-count">({{ progressState.failedCount }} failed)</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Progress Bar -->
+    <nz-progress
+      [nzPercent]="getProgressPercentage()"
+      [nzStatus]="getProgressStatus()"
+      [nzStrokeWidth]="8"
+      [nzShowInfo]="false"
+      nzSize="small"
+    ></nz-progress>
+  </div>
+
+  <!-- Completed/Error message -->
+  <div class="recovery-info" *ngIf="(progressState.status === 'complete' || progressState.status === 'error') && !isMinimized">
+    <div class="progress-text text-center">
+      <p class="text-xs text-gray-600 m-0">
+        {{ progressState.message }}
+      </p>
+    </div>
+  </div>
+</div>
