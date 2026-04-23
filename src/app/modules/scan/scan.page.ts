@@ -72,9 +72,7 @@ export class ScanPage implements OnInit, OnDestroy {
     // Cho phép màn hình tắt khi destroy page
     try {
       await KeepAwake.allowSleep();
-      console.log("Keep awake deactivated");
     } catch (error) {
-      console.warn("Failed to deactivate keep awake:", error);
     }
 
     await CameraBarcode.removeAllListeners().catch(() => {});
@@ -85,9 +83,7 @@ export class ScanPage implements OnInit, OnDestroy {
     // Cho phép màn hình tắt khi rời khỏi page
     try {
       await KeepAwake.allowSleep();
-      console.log("Keep awake deactivated");
     } catch (error) {
-      console.warn("Failed to deactivate keep awake:", error);
     }
 
     await CameraBarcode.removeAllListeners().catch(() => {});
@@ -100,9 +96,7 @@ export class ScanPage implements OnInit, OnDestroy {
     if (this.platform.is("ios") || this.platform.is("android")) {
       try {
         await KeepAwake.keepAwake();
-        console.log("Keep awake activated");
       } catch (error) {
-        console.warn("Failed to activate keep awake:", error);
       }
       await this.startInlinePreview();
     }
@@ -185,7 +179,6 @@ export class ScanPage implements OnInit, OnDestroy {
 
       this.scanCooldownUntil = now + 500; // Cooldown ngắn hơn cho scan
     } catch (error) {
-      console.error("Scan handling error:", error);
       await this.toast("❌ Lỗi xử lý mã quét");
     } finally {
       this.scanBusy = false;
@@ -195,25 +188,20 @@ export class ScanPage implements OnInit, OnDestroy {
   // =================== ACTION BUTTONS ===================
   async toggleTorch() {
     try {
-      console.log("Current torch state:", this.torchOn);
-      console.log("Current scanning state:", this.scanning);
 
       // Kiểm tra xem có đang ở trạng thái có thể sử dụng torch không
       if (!this.scanning) {
-        console.warn("Cannot toggle torch: camera not started");
         await this.toast("Vui lòng bật camera trước khi sử dụng đèn pin");
         return;
       }
 
       // Kiểm tra platform
       if (!this.platform.is("ios") && !this.platform.is("android")) {
-        console.warn("Torch not supported on this platform");
         await this.toast("Đèn pin chỉ hỗ trợ trên mobile");
         return;
       }
 
       const newTorchState = !this.torchOn;
-      console.log("Setting torch to:", newTorchState);
 
       // Thử set torch với timeout
       const torchPromise = CameraBarcode.setTorchState(newTorchState);
@@ -223,13 +211,11 @@ export class ScanPage implements OnInit, OnDestroy {
 
       // Chỉ cập nhật state khi API call thành công
       this.torchOn = newTorchState;
-      console.log("Torch toggled successfully to:", this.torchOn);
 
       // Feedback cho user
       const message = this.torchOn ? "🔦 Đã bật đèn pin" : "🔦 Đã tắt đèn pin";
       await this.toast(message);
     } catch (error) {
-      console.error("Failed to toggle torch:", error);
 
       // Reset torch state về false nếu có lỗi
       this.torchOn = false;
@@ -361,13 +347,10 @@ export class ScanPage implements OnInit, OnDestroy {
    */
   private async checkTorchCapabilities() {
     try {
-      console.log("Testing torch capabilities...");
 
       // Thử bật torch một cách im lặng để test
       await CameraBarcode.setTorchState(false);
-      console.log("Torch capabilities: OK");
     } catch (error) {
-      console.warn("Torch not available on this device:", error);
     }
   }
 

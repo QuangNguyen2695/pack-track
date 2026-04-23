@@ -112,7 +112,6 @@ export class SyncStatusWidgetComponent implements OnInit, OnDestroy {
     try {
       await this.syncProgressService.processAutoDelete();
     } catch (error) {
-      console.error("Retry delete failed:", error);
     }
   }
 }

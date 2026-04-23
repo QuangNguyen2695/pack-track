@@ -36,7 +36,6 @@ export class SettingsService {
   public settings$: Observable<SettingsPreferences> = this.settingsSubject.asObservable();
 
   constructor() {
-    console.log("✅ [Settings] Service initialized");
     this.loadSettings();
   }
 
@@ -51,7 +50,6 @@ export class SettingsService {
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
         this.settingsSubject.next(settings);
-        console.log("📥 [Settings] Loaded user settings:", settings);
       }
 
       if (savedSubscription) {
@@ -59,10 +57,8 @@ export class SettingsService {
         if (subscription.startDate) subscription.startDate = new Date(subscription.startDate);
         if (subscription.expiryDate) subscription.expiryDate = new Date(subscription.expiryDate);
         this.subscriptionInfoSubject.next(subscription);
-        console.log("📥 [Settings] Loaded subscription info:", subscription);
       }
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to load settings:", error);
     }
   }
 
@@ -73,9 +69,7 @@ export class SettingsService {
     this.subscriptionInfoSubject.next(info);
     try {
       localStorage.setItem("subscription_info", JSON.stringify(info));
-      console.log("💾 [Settings] Saved subscription info:", info);
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to save subscription:", error);
     }
   }
 
@@ -101,9 +95,7 @@ export class SettingsService {
     this.subscriptionInfoSubject.next(canceled);
     try {
       localStorage.setItem("subscription_info", JSON.stringify(canceled));
-      console.log("⏸️ [Settings] Subscription marked for cancellation - access continues until:", current.expiryDate);
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to cancel subscription:", error);
     }
   }
 
@@ -125,9 +117,7 @@ export class SettingsService {
     this.subscriptionInfoSubject.next(disabled);
     try {
       localStorage.setItem("subscription_info", JSON.stringify(disabled));
-      console.log("🗑️ [Settings] VIP access disabled - subscription expired");
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to disable VIP:", error);
     }
   }
 
@@ -143,9 +133,7 @@ export class SettingsService {
     this.settingsSubject.next(updated);
     try {
       localStorage.setItem("user_settings", JSON.stringify(updated));
-      console.log(`💾 [Settings] Auto-delete videos set to: ${days ? days + " days" : "disabled"}`);
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to save settings:", error);
     }
   }
 
@@ -161,9 +149,7 @@ export class SettingsService {
     this.settingsSubject.next(updated);
     try {
       localStorage.setItem("user_settings", JSON.stringify(updated));
-      console.log(`💾 [Settings] Notifications set to: ${enabled ? "enabled" : "disabled"}`);
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to save settings:", error);
     }
   }
 
@@ -179,9 +165,7 @@ export class SettingsService {
     this.settingsSubject.next(updated);
     try {
       localStorage.setItem("user_settings", JSON.stringify(updated));
-      console.log(`💾 [Settings] User type set to: ${type === "seller" ? "Người bán hàng" : "Người mua hàng"}`);
     } catch (error) {
-      console.warn("⚠️ [Settings] Failed to save user type:", error);
     }
   }
 

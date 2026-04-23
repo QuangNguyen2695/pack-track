@@ -39,9 +39,6 @@ export class HomePage implements OnInit, OnDestroy {
   adsRequiredPerDay = 5;
 
   private statsSubscription?: Subscription;
-  private autoAdTimerId: any = null;
-  private readonly AUTO_AD_INTERVAL = 5 * 60 * 1000; // 10 minutes in milliseconds
-  private lastAdShowTime = 0;
 
   constructor(
     private toastController: ToastController,
@@ -58,13 +55,11 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   async ngOnInit() {
-    console.log("📱 [Home] Page loaded");
     await this.ads.init();
     this.adsRequiredPerDay = this.ads.adsRequiredPerDay;
     this.loadTodayStats();
     this.loadSubscriptionInfo();
     this.loadStats();
-    this.startAutoAdTimer();
   }
 
   /**
@@ -76,9 +71,6 @@ export class HomePage implements OnInit, OnDestroy {
       this.subscriptionInfo = info;
       this.isPendingCancel = this.settingsService.isPendingCancellation();
       this.daysRemaining = this.settingsService.getDaysRemaining();
-      console.log(
-        `💎 [Home] Subscription updated - Active: ${info.isActive}, Pending cancel: ${this.isPendingCancel}, Days remaining: ${this.daysRemaining}`,
-      );
     });
   }
 
@@ -87,7 +79,6 @@ export class HomePage implements OnInit, OnDestroy {
    */
   private loadStats() {
     this.statsSubscription = this.statisticsService.statsUpdated$.subscribe((updatedStats) => {
-      console.log("🔄 [Home] Stats updated:", updatedStats);
       this.todayStats = updatedStats;
     });
   }
@@ -98,7 +89,6 @@ export class HomePage implements OnInit, OnDestroy {
       this.statsSubscription.unsubscribe();
     }
     // Stop auto ad timer
-    this.stopAutoAdTimer();
   }
 
   async ionViewWillEnter() {
@@ -161,13 +151,11 @@ export class HomePage implements OnInit, OnDestroy {
     this.status = "loading…";
 
     try {
-      console.log("📺 [Home] Showing rewarded ad...");
       const r = await this.ads.checkAndShowRewardAd();
 
       if (r) {
         // ✅ User completed the ad and got reward
         this.status = "rewarded ✅";
-        this.lastAdShowTime = Date.now();
 
         // Reload stats sau khi xem quảng cáo
         await new Promise((resolve) => setTimeout(resolve, 500));
@@ -192,14 +180,11 @@ export class HomePage implements OnInit, OnDestroy {
           color: "warning",
         });
         await toast.present();
-
-        console.warn("⚠️ [Home] No reward ad available or user closed ad");
       }
     } catch (e: any) {
       // ❌ Error occurred while trying to show ad
       this.error = e?.message || String(e);
       this.status = "show failed";
-      console.error("❌ [Home] Failed to show rewarded ad:", e);
 
       const toast = await this.toastController.create({
         message: `❌ ${this.error || "Lỗi khi tải quảng cáo"}`,
@@ -228,14 +213,10 @@ export class HomePage implements OnInit, OnDestroy {
     const productId = this.getProductIdFromPlan(current.plan);
 
     try {
-      console.log(`🔄 [Home] Reactivating subscription with product: ${productId}`);
-
       // Call Billing API to reactivate via RevenueCat
       const success = await this.billing.purchaseSubscription(productId);
 
       if (success) {
-        console.log("✅ [Home] Reactivation initiated via RevenueCat");
-
         // Show waiting message
         const toast = await this.toastController.create({
           message: "⏳ Đang xử lý... Vui lòng hoàn tất thanh toán",
@@ -246,7 +227,6 @@ export class HomePage implements OnInit, OnDestroy {
         await toast.present();
 
         // The billing service will automatically update subscription state
-        console.log("⏳ [Home] Waiting for confirmation...");
       } else {
         const toast = await this.toastController.create({
           message: "❌ Không thể kích hoạt lại. Vui lòng thử lại sau 5 phút.",
@@ -257,8 +237,6 @@ export class HomePage implements OnInit, OnDestroy {
         await toast.present();
       }
     } catch (error) {
-      console.error("❌ [Home] Reactivation error:", error);
-
       const toast = await this.toastController.create({
         message: "❌ Lỗi kích hoạt lại subscription",
         duration: 2000,
@@ -299,9 +277,7 @@ export class HomePage implements OnInit, OnDestroy {
         // Fallback to window.open
         window.open(subscriptionsUrl, "_system");
       }
-      console.log("🌐 [Home] Opened Google Play Manage Subscriptions");
     } catch (error) {
-      console.error("❌ [Home] Failed to open Google Play:", error);
       const toast = await this.toastController.create({
         message: "❌ Không thể mở Google Play. Vui lòng thăm https://play.google.com/store/account/subscriptions",
         duration: 3000,
@@ -309,40 +285,6 @@ export class HomePage implements OnInit, OnDestroy {
         color: "danger",
       });
       await toast.present();
-    }
-    console.log("✅ [Home] VIP subscription reactivated");
-  }
-
-  /**
-   * Start auto ad timer - show rewarded ad every 10 minutes
-   */
-  private startAutoAdTimer() {
-    console.log("⏱️ [Home] Starting auto ad timer (10 min interval)");
-
-    // Clear existing timer if any
-    this.stopAutoAdTimer();
-
-    // Set initial timer to trigger after 10 minutes
-    this.autoAdTimerId = setInterval(async () => {
-      const now = Date.now();
-      const timeSinceLastAd = now - this.lastAdShowTime;
-
-      // Insurance check: only show if at least 5 minutes have passed
-      if (timeSinceLastAd >= 5 * 60 * 1000) {
-        console.log("⏱️ [Home] Auto ad timer triggered - showing rewarded ad");
-        await this.watchRewardedAds();
-      }
-    }, this.AUTO_AD_INTERVAL);
-  }
-
-  /**
-   * Stop auto ad timer
-   */
-  private stopAutoAdTimer() {
-    if (this.autoAdTimerId) {
-      console.log("⏱️ [Home] Stopping auto ad timer");
-      clearInterval(this.autoAdTimerId);
-      this.autoAdTimerId = null;
     }
   }
 

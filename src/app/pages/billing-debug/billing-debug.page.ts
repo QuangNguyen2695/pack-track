@@ -47,8 +47,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
       });
 
     // Log page init
-    console.error("🔧 [BillingDebugPage] Debug page initialized");
-    console.error("📊 Diagnostic data:", this.billing.getDiagnostics());
   }
 
   ngOnDestroy(): void {
@@ -95,7 +93,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
     this.logCaptureService.clearLogs();
     this.logs = [];
     this.filteredLogs = [];
-    console.error("🗑️ [BillingDebugPage] Logs cleared");
   }
 
   /**
@@ -103,7 +100,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    */
   downloadLogs(): void {
     this.logCaptureService.downloadLogs();
-    console.error("💾 [BillingDebugPage] Logs downloaded as JSON");
   }
 
   /**
@@ -111,23 +107,17 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    */
   exportAsCSV(): void {
     this.logCaptureService.exportAsCSV();
-    console.error("💾 [BillingDebugPage] Logs exported as CSV");
   }
 
   /**
    * Download JSON file to device storage
    */
   async downloadFileToDevice(): Promise<void> {
-    console.error("⏳ [BillingDebugPage] Downloading JSON file to device...");
     const result = await this.logCaptureService.downloadLogsToDevice();
 
     if (result.success) {
-      console.error("✅ [BillingDebugPage] File saved successfully!");
-      console.error("📁 Path:", result.path);
       this.showToast(`✅ File saved!`);
     } else {
-      console.error("❌ [BillingDebugPage] Failed to download file");
-      console.error("Error:", result.error);
       this.showToast(`❌ ${result.error || "Failed to save file"}`, "danger");
     }
   }
@@ -136,16 +126,11 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    * Download CSV file to device storage
    */
   async exportFileToDevice(): Promise<void> {
-    console.error("⏳ [BillingDebugPage] Exporting CSV file to device...");
     const result = await this.logCaptureService.exportAsCSVToDevice();
 
     if (result.success) {
-      console.error("✅ [BillingDebugPage] CSV file saved successfully!");
-      console.error("📁 Path:", result.path);
       this.showToast(`✅ CSV file saved!`);
     } else {
-      console.error("❌ [BillingDebugPage] Failed to export CSV file");
-      console.error("Error:", result.error);
       this.showToast(`❌ ${result.error || "Failed to save CSV file"}`, "danger");
     }
   }
@@ -156,10 +141,8 @@ export class BillingDebugPage implements OnInit, OnDestroy {
   async copyLogs(): Promise<void> {
     const success = await this.logCaptureService.copyLogsToClipboard();
     if (success) {
-      console.error("📋 [BillingDebugPage] Logs copied to clipboard!");
       this.showToast("Logs copied to clipboard!");
     } else {
-      console.error("❌ [BillingDebugPage] Failed to copy logs");
       this.showToast("Failed to copy logs", "danger");
     }
   }
@@ -169,7 +152,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    */
   private showToast(message: string, color: string = "success"): void {
     // Simple console notification for now
-    console.error(`${color === "success" ? "✅" : "❌"} ${message}`);
   }
 
   /**
@@ -177,7 +159,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    */
   togglePause(): void {
     this.isPaused = !this.isPaused;
-    console.error(`⏸️ [BillingDebugPage] Logs ${this.isPaused ? "paused" : "resumed"}`);
   }
 
   /**
@@ -185,7 +166,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    */
   toggleAutoscroll(): void {
     this.autoscroll = !this.autoscroll;
-    console.error(`📌 [BillingDebugPage] Autoscroll ${this.autoscroll ? "enabled" : "disabled"}`);
   }
 
   /**
@@ -237,7 +217,6 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    * Trigger billing diagnosis
    */
   triggerDiagnosis(): void {
-    console.error("🏥 [BillingDebugPage] Triggering diagnosis...");
     this.billing.logStoreState();
   }
 
@@ -245,9 +224,7 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    * Test purchase
    */
   testPurchase(): void {
-    console.error("🧪 [BillingDebugPage] Testing purchase flow...");
     this.billing.debugPurchaseFlow().catch((error: any) => {
-      console.error("❌ Test failed:", error);
     });
   }
 
@@ -255,9 +232,7 @@ export class BillingDebugPage implements OnInit, OnDestroy {
    * Check subscription status
    */
   checkSubscriptionStatus(): void {
-    console.error("🔍 [BillingDebugPage] Checking subscription status...");
     const hasActive = this.billing.hasActiveSubscription();
-    console.error("📊 Has active subscription:", hasActive);
   }
 
   /**

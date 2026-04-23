@@ -70,7 +70,6 @@ export class AppComponent implements OnInit {
     this.platform.backButton.subscribeWithPriority(10, () => {
       if (this.routerOutlet?.canGoBack()) {
         if (this.appCheckFailed) {
-          console.warn("⛔ [AppComponent] Back button blocked - AppCheck has failed");
           return;
         }
         this.routerOutlet.pop();
@@ -108,16 +107,11 @@ export class AppComponent implements OnInit {
           // RevenueCat uses internal package IDs like $rc_monthly which don't change
 
           // Initialize Billing with RevenueCat
-          console.error("[DEBUG] Setting up Billing initialization (RevenueCat)...");
 
           // Initialize billing immediately (no delay needed with RevenueCat)
           try {
-            console.error("[DEBUG] CALLING billing.initialize()...");
             await this.billing.initialize();
-            console.error("[DEBUG] ✅ billing.initialize() COMPLETED SUCCESSFULLY");
           } catch (error: any) {
-            console.error("[DEBUG] ❌ billing.initialize() THREW ERROR:", error?.message || error);
-            console.error(error?.stack);
           }
 
           // Set Affiliate Data in Affiliate Service
@@ -126,14 +120,10 @@ export class AppComponent implements OnInit {
           }
 
           await this.admobInit();
-          console.error("[DEBUG] ✅ firebaseInit() COMPLETED - Firebase config loaded and services initialized");
         } else {
-          console.error("[DEBUG] ❌ firebaseInit() - Firebase config is NULL/EMPTY");
           this.appState.setAppCheckFailed("Ứng dụng không thể xác minh. Vui lòng cập nhật hoặc cài đặt lại từ Google Play Store.");
         }
       } catch (error: any) {
-        console.error("[DEBUG] ❌ firebaseInit() CAUGHT ERROR:", error?.message || error);
-        console.error(error?.stack);
       }
     } else {
     }
@@ -142,7 +132,6 @@ export class AppComponent implements OnInit {
   async admobInit() {
     // ✅ Prevent duplicate init
     if (this.admobInitialized) {
-      console.warn("⚠️ [AppComponent] AdMob already initialized, skipping...");
       return;
     }
     this.admobInitialized = true;
@@ -150,7 +139,6 @@ export class AppComponent implements OnInit {
     try {
       await this.ads.init();
     } catch (error: any) {
-      console.error("❌ [AppComponent] AdMob init error:", error?.message || error);
       // Don't block app - continue even if AdMob fails
       return;
     }
@@ -158,19 +146,16 @@ export class AppComponent implements OnInit {
     try {
       await this.ads.showBanner(false);
     } catch (error: any) {
-      console.error("❌ [AppComponent] showBanner error:", error?.message || error);
     }
 
     try {
       await this.ads.preloadInterstitial();
     } catch (error) {
-      console.error("❌ [AppComponent] preloadInterstitial error:", error);
     }
 
     try {
       await this.ads.preloadRewarded();
     } catch (error) {
-      console.error("❌ [AppComponent] preloadRewarded error:", error);
     }
   }
 
@@ -180,7 +165,6 @@ export class AppComponent implements OnInit {
   private watchAppState() {
     this.appState.appState$.subscribe(async (state) => {
       if (state.appCheckFailed) {
-        console.error("⚠️ [AppComponent] AppCheck failed, showing forced update modal");
         this.appCheckFailed = true;
         await this.showAppCheckFailedModal(state.appCheckError);
       }
@@ -234,7 +218,6 @@ export class AppComponent implements OnInit {
     // Prevent dismiss by any method
     this.appCheckFailedAlert.onWillDismiss().then((result: any) => {
       if (this.appCheckFailed) {
-        console.warn("⛔ [AppComponent] Attempt to dismiss blocked - AppCheck failed");
         // Re-present immediately
         setTimeout(() => {
           this.appCheckFailedAlert.present();
@@ -257,7 +240,6 @@ export class AppComponent implements OnInit {
           this.appState.setAppCheckFailed("Ứng dụng không thể xác minh. Vui lòng cập nhật hoặc cài đặt lại từ Google Play Store.");
         }
       } catch (error) {
-        console.warn("⚠️ [AppComponent] Security plugin error (non-critical):", error);
         // Plugin may not be available on all devices/builds - allow app to continue
       }
     }
@@ -290,11 +272,9 @@ export class AppComponent implements OnInit {
           if (recoveredCount > 0) {
           }
         } catch (error) {
-          console.error("❌ [AppComponent] Video recovery failed:", error);
         }
       }, 2000);
     } catch (error) {
-      console.error("❌ [AppComponent] Failed to start video recovery:", error);
     }
   }
 
@@ -309,11 +289,9 @@ export class AppComponent implements OnInit {
         try {
           await this.syncProgressService.processAutoDelete();
         } catch (error) {
-          console.error("❌ [AppComponent] Auto-delete failed:", error);
         }
       }, 1000);
     } catch (error) {
-      console.error("❌ [AppComponent] Failed to start auto-delete:", error);
     }
   }
 
@@ -335,7 +313,6 @@ export class AppComponent implements OnInit {
         }
       }
     } catch (error) {
-      console.warn("⚠️ [AppComponent] Failed to check VIP expiry:", error);
     }
   }
 

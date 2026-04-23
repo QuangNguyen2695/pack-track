@@ -26,7 +26,6 @@ export class PackService {
 
   /** lưu toàn bộ pack */
   async saveAllPacks(packs: PackDoc[]): Promise<void> {
-    console.log("🚀 ~ PackService ~ saveAllPacks ~ packs:", packs);
     await this.storage?.set(this.storageKey, packs);
   }
 
@@ -38,7 +37,6 @@ export class PackService {
 
   /** lưu toàn bộ return videos */
   async saveAllReturnVideos(videos: PackDoc[]): Promise<void> {
-    console.log("🚀 ~ PackService ~ saveAllReturnVideos ~ videos:", videos);
     await this.storage?.set(this.returnVideosStorageKey, videos);
   }
 
@@ -71,7 +69,6 @@ export class PackService {
     videos.push(newPack);
 
     await this.saveAllReturnVideos(videos);
-    console.log(`📦 [PackService] Return video created: ${newPack._id} for order ${newPack.orderCode}`);
 
     return newPack;
   }
@@ -179,14 +176,11 @@ export class PackService {
     const idArray = Array.isArray(ids) ? ids : [ids];
 
     if (idArray.length === 0) {
-      console.log("⚠️ [PackService] No normal pack IDs to delete");
       return { success: true, deletedCount: 0 };
     }
 
     let normalPacks = await this.getAllPacks();
     const packsToDelete = normalPacks.filter((p) => idArray.includes(p._id));
-
-    console.log(`🗑️ [PackService] Deleting ${packsToDelete.length} normal packs`);
 
     // Collect URIs from normal packs
     const urisToDelete = packsToDelete
@@ -203,8 +197,6 @@ export class PackService {
     normalPacks = normalPacks.filter((p) => !idArray.includes(p._id));
     await this.saveAllPacks(normalPacks);
 
-    console.log(`✅ [PackService] Deleted ${packsToDelete.length} normal packs and ${urisToDelete.length} video files`);
-
     return { success: true, deletedCount: packsToDelete.length };
   }
 
@@ -217,14 +209,11 @@ export class PackService {
     const idArray = Array.isArray(ids) ? ids : [ids];
 
     if (idArray.length === 0) {
-      console.log("⚠️ [PackService] No return video IDs to delete");
       return { success: true, deletedCount: 0 };
     }
 
     let returnVideos = await this.getAllReturnVideos();
     const videosToDelete = returnVideos.filter((p) => idArray.includes(p._id));
-
-    console.log(`🗑️ [PackService] Deleting ${videosToDelete.length} return videos`);
 
     // Collect URIs from return videos
     const urisToDelete = videosToDelete
@@ -240,8 +229,6 @@ export class PackService {
     // Remove from storage
     returnVideos = returnVideos.filter((p) => !idArray.includes(p._id));
     await this.saveAllReturnVideos(returnVideos);
-
-    console.log(`✅ [PackService] Deleted ${videosToDelete.length} return videos and ${urisToDelete.length} video files`);
 
     return { success: true, deletedCount: videosToDelete.length };
   }
@@ -263,13 +250,9 @@ export class PackService {
       const normalCount = normalPacks.filter((p) => new Date(p.createdAt) < beforeDate).length;
       const returnCount = returnVideos.filter((p) => new Date(p.createdAt) < beforeDate).length;
 
-      console.log(
-        `📊 [PackService] Videos before ${beforeDate.toLocaleDateString()}: ${normalCount} normal + ${returnCount} return = ${normalCount + returnCount} total`,
-      );
 
       return normalCount + returnCount;
     } catch (error) {
-      console.error(`❌ [PackService] Error calculating videos before date:`, error);
       return 0;
     }
   }
@@ -284,7 +267,6 @@ export class PackService {
 
   private async deleteVideosBeforeAsync(beforeDate: Date) {
     try {
-      console.log(`🗑️ [PackService] Deleting videos before date: ${beforeDate.toISOString()}`);
 
       // Get both normal and return videos
       let normalPacks = await this.getAllPacks();
@@ -302,9 +284,6 @@ export class PackService {
       });
 
       const totalToDelete = normalPacksToDelete.length + returnVideosToDelete.length;
-      console.log(
-        `🗑️ [PackService] Found ${normalPacksToDelete.length} normal + ${returnVideosToDelete.length} return videos to delete before ${beforeDate.toLocaleDateString()}`,
-      );
 
       // Collect IDs and URIs from both
       const idsToDelete = [
@@ -333,11 +312,8 @@ export class PackService {
       await this.saveAllPacks(normalPacks);
       await this.saveAllReturnVideos(returnVideos);
 
-      console.log(`✅ [PackService] Deleted ${totalToDelete} videos before ${beforeDate.toLocaleDateString()} and ${urisToDelete.length} video files`);
-
       return { success: true, deletedCount: totalToDelete };
     } catch (error) {
-      console.error(`❌ [PackService] Error deleting videos before date:`, error);
       return { success: false, deletedCount: 0 };
     }
   }
@@ -346,7 +322,6 @@ export class PackService {
     const idArray = Array.isArray(ids) ? ids : [ids];
 
     if (idArray.length === 0) {
-      console.log("⚠️ [PackService] No IDs to delete");
       return { success: true, deletedCount: 0 };
     }
 
@@ -359,7 +334,6 @@ export class PackService {
     const returnVideosToDelete = returnVideos.filter((p) => idArray.includes(p._id));
 
     const totalToDelete = normalPacksToDelete.length + returnVideosToDelete.length;
-    console.log(`🗑️ [PackService] Found ${normalPacksToDelete.length} normal + ${returnVideosToDelete.length} return videos to delete from ${idArray.length} IDs`);
 
     // Collect URIs from both normal and return videos
     const urisToDelete = [
@@ -383,30 +357,22 @@ export class PackService {
     await this.saveAllPacks(normalPacks);
     await this.saveAllReturnVideos(returnVideos);
 
-    console.log(`✅ [PackService] Deleted ${totalToDelete} packs and ${urisToDelete.length} video files`);
-
     return { success: true, deletedCount: totalToDelete };
   }
 
   private async deleteMultipleVideoFiles(uris: string[]): Promise<void> {
     try {
-      console.log(`🗑️ [PackService] Batch deleting ${uris.length} videos`);
 
       const result = await Video.deleteMultipleByUris({
         uris,
       });
 
-      console.log(`📊 [PackService] Batch delete result: ${result.success}/${uris.length}`);
-
       if (result.success > 0) {
-        console.log(`✅ [PackService] Successfully deleted ${result.success} videos`);
       }
 
       if (result.fail > 0) {
-        console.warn(`⚠️ [PackService] Failed to delete ${result.fail} videos`);
       }
     } catch (error) {
-      console.error(`❌ [PackService] Error in batch deletion: ${error}`);
     }
   }
 
@@ -417,7 +383,6 @@ export class PackService {
 
   private async searchLocalNormalPacks(params: any) {
     let packs = await this.getAllPacks();
-    console.log("📦 [searchLocalNormalPacks] Fetching NORMAL videos, count:", packs.length);
 
     return this.applySearchFilters(packs, params, "normal");
   }
@@ -429,7 +394,6 @@ export class PackService {
 
   private async searchLocalReturnPacks(params: any) {
     let packs = await this.getAllReturnVideos();
-    console.log("🔄 [searchLocalReturnPacks] Fetching RETURN videos, count:", packs.length);
 
     return this.applySearchFilters(packs, params, "return");
   }
@@ -444,29 +408,22 @@ export class PackService {
     let packs: PackDoc[] = [];
     const videoTypeFilter = params.filters?.value || [];
 
-    console.log("🚀 ~ PackService ~ searchLocalPacks ~ videoTypeFilter:", videoTypeFilter);
-
     if (videoTypeFilter.includes("normal")) {
       packs = await this.getAllPacks();
-      console.log("📦 [searchLocalPacks] Fetching NORMAL videos, count:", packs.length);
     } else if (videoTypeFilter.includes("return")) {
       packs = await this.getAllReturnVideos();
-      console.log("🔄 [searchLocalPacks] Fetching RETURN videos, count:", packs.length);
     } else {
       // If no filter specified, get both and merge
       const normalPacks = await this.getAllPacks();
       const returnPacks = await this.getAllReturnVideos();
       packs = [...normalPacks, ...returnPacks];
-      console.log("📋 [searchLocalPacks] Fetching BOTH types, normal:", normalPacks.length, "return:", returnPacks.length);
     }
 
-    console.log("🚀 ~ PackService ~ searchLocalPacks ~ packs:", packs);
     return this.applySearchFilters(packs, params, "");
   }
 
   /** Apply common search filters, sorting, and pagination */
   private applySearchFilters(packs: PackDoc[], params: any, type: string) {
-    console.log(`🚀 ~ PackService ~ applySearchFilters ~ type: ${type}, packs count:`, packs.length);
 
     // Filter by keyword
     if (params.keyword) {
@@ -476,17 +433,10 @@ export class PackService {
 
     // Filter by date range
     if (params.startDate || params.endDate) {
-      console.log("🔍 Filtering by date range:", {
-        startDate: params.startDate,
-        endDate: params.endDate,
-        startDateStr: params.startDate ? new Date(params.startDate).toISOString() : null,
-        endDateStr: params.endDate ? new Date(params.endDate).toISOString() : null,
-      });
 
       packs = packs.filter((p) => {
         const packDateStr = p.createdAt || p.startRecordDate;
         if (!packDateStr) {
-          console.log(`⏭️  Skip pack (no date): ${p.packNumber || p._id}`);
           return false;
         }
 
@@ -497,8 +447,6 @@ export class PackService {
         const packDay = String(packDate.getDate()).padStart(2, "0");
         const packDateLocal = `${packYear}-${packMonth}-${packDay}`; // 2026-04-06
 
-        console.log(`📅 Pack date (local): ${packDateLocal}, pack: ${p.packNumber || p._id}`);
-
         let passesFilter = true;
 
         if (params.startDate) {
@@ -508,11 +456,8 @@ export class PackService {
           const startDay = String(startDate.getDate()).padStart(2, "0");
           const startDateLocal = `${startYear}-${startMonth}-${startDay}`; // 2026-04-06
 
-          console.log(`📅 Start filter (local): ${startDateLocal}`);
-
           if (packDateLocal < startDateLocal) {
             passesFilter = false;
-            console.log(`❌ Pack ${p.packNumber} excluded: ${packDateLocal} < ${startDateLocal} (startDate)`);
           }
         }
 
@@ -523,11 +468,8 @@ export class PackService {
           const endDay = String(endDate.getDate()).padStart(2, "0");
           const endDateLocal = `${endYear}-${endMonth}-${endDay}`; // 2026-04-06
 
-          console.log(`📅 End filter (local): ${endDateLocal}`);
-
           if (packDateLocal > endDateLocal) {
             passesFilter = false;
-            console.log(`❌ Pack ${p.packNumber} excluded: ${packDateLocal} > ${endDateLocal} (endDate)`);
           }
         }
 
@@ -544,12 +486,10 @@ export class PackService {
                 return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
               })()
             : "any";
-          console.log(`✅ Pack ${p.packNumber} included: ${packDateLocal} (range: ${startLocalStr} - ${endLocalStr})`);
         }
 
         return passesFilter;
       });
-      console.log(`📊 After date filter: ${packs.length} packs remain`);
     }
 
     // Apply sorting
@@ -582,8 +522,6 @@ export class PackService {
 
     const pageData = packs.slice(start, end);
 
-    console.log(`✅ Search result [${type}]:`, { count: pageData.length, totalItem, pageIdx, pageSize });
-
     return {
       packs: pageData,
       pageIdx,
@@ -599,7 +537,6 @@ export class PackService {
 
   private async getReturnVideosLocal(orderCode: string): Promise<PackDoc[]> {
     const returnVideos = await this.getAllReturnVideos();
-    console.log("🚀 ~ PackService ~ getReturnVideosLocal ~ returnVideos:", returnVideos);
     return returnVideos.filter((p) => p.orderCode === orderCode || p.packNumber === orderCode);
   }
 
@@ -610,7 +547,6 @@ export class PackService {
 
   private async getNormalVideosLocal(orderCode: string): Promise<PackDoc[]> {
     const normalPacks = await this.getAllPacks();
-    console.log("🚀 ~ PackService ~ getNormalVideosLocal ~ normalPacks:", normalPacks);
     return normalPacks.filter((p) => p.orderCode === orderCode || p.packNumber === orderCode);
   }
 

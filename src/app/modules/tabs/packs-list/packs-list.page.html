@@ -148,12 +148,7 @@
                   <div class="card-content">
                     <!-- Thumbnail -->
                     <div class="thumbnail">
-                      <img
-                        *ngIf="product.image"
-                        [src]="product.image"
-                        alt="Product thumbnail"
-                        class="thumbnail-img"
-                      />
+                      <img *ngIf="product.image" [src]="product.image" alt="Product thumbnail" class="thumbnail-img" />
                       <div *ngIf="!product.image" class="thumbnail-placeholder">
                         <ion-icon name="bag-outline"></ion-icon>
                       </div>
@@ -310,11 +305,6 @@
           <span *ngIf="!loadingMore">Tải thêm</span>
           <span *ngIf="loadingMore"><span nz-icon nzType="loading"></span> Đang tải…</span>
         </button>
-      </div>
-
-      <!-- Native Ad Display -->
-      <div class="px-3 py-2" *ngIf="!loading && currentSearchPacks.packs.length">
-        <app-native-ad-display></app-native-ad-display>
       </div>
 
       <div class="end" *ngIf="!loading && currentSearchPacks.packs.length && isCurrentTabReachedEnd && getSelectedCount() === 0">

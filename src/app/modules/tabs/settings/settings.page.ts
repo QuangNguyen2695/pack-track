@@ -45,7 +45,6 @@ export class SettingsPage implements OnInit {
   }
 
   ngOnInit() {
-    console.log("⚙️ [Settings] Page loaded");
     this.loadSubscriptionInfo();
     this.loadSettings();
   }
@@ -57,7 +56,6 @@ export class SettingsPage implements OnInit {
     this.settingsService.subscriptionInfo$.subscribe((info) => {
       this.subscriptionInfo = info;
       this.daysRemaining = this.settingsService.getDaysRemaining();
-      console.log("💎 [Settings] Subscription info loaded:", info, "Days remaining:", this.daysRemaining);
     });
   }
 
@@ -67,7 +65,6 @@ export class SettingsPage implements OnInit {
   private loadSettings() {
     this.settingsService.settings$.subscribe((settings) => {
       this.settings = settings;
-      console.log("⚙️ [Settings] Settings loaded:", settings);
     });
   }
 
@@ -102,7 +99,6 @@ export class SettingsPage implements OnInit {
   setAutoDelete(days: number | null) {
     this.settingsService.setAutoDeleteVideosAfterDays(days);
     const message = days ? `Tự động xóa video sau ${days} ngày` : "Tắt tự động xóa video";
-    console.log("✅ [Settings] Auto-delete set:", message);
   }
 
   /**
@@ -110,7 +106,6 @@ export class SettingsPage implements OnInit {
    */
   toggleNotifications(enabled: boolean) {
     this.settingsService.setNotificationsEnabled(enabled);
-    console.log("✅ [Settings] Notifications set to:", enabled);
   }
 
   /**
@@ -119,7 +114,6 @@ export class SettingsPage implements OnInit {
   setUserType(type: "seller" | "buyer") {
     this.settingsService.setUserType(type);
     const typeName = type === "seller" ? "Người bán hàng" : "Người mua hàng";
-    console.log("✅ [Settings] User type set to:", typeName);
   }
 
   /**
@@ -134,14 +128,10 @@ export class SettingsPage implements OnInit {
     const productId = this.getProductIdFromPlan(current.plan);
 
     try {
-      console.log(`🔄 [Settings] Reactivating subscription with product: ${productId}`);
-
       // Call Billing API to reactivate via RevenueCat
       const success = await this.billing.purchaseSubscription(productId);
 
       if (success) {
-        console.log("✅ [Settings] Reactivation initiated via RevenueCat");
-
         // Show waiting message
         const toast = await this.toastController.create({
           message: "⏳ Đang xử lý... Vui lòng hoàn tất thanh toán",
@@ -152,7 +142,6 @@ export class SettingsPage implements OnInit {
         await toast.present();
 
         // The billing service will automatically update subscription state
-        console.log("⏳ [Settings] Waiting for confirmation...");
       } else {
         const toast = await this.toastController.create({
           message: "❌ Không thể kích hoạt lại. Vui lòng thử lại sau 5 phút.",
@@ -163,8 +152,6 @@ export class SettingsPage implements OnInit {
         await toast.present();
       }
     } catch (error) {
-      console.error("❌ [Settings] Reactivation error:", error);
-
       const toast = await this.toastController.create({
         message: "❌ Lỗi kích hoạt lại subscription",
         duration: 2000,
@@ -194,8 +181,6 @@ export class SettingsPage implements OnInit {
         await cancelToast.present();
 
         try {
-          console.log("🔗 [Settings] Opening Google Play subscription management...");
-
           // Open Google Play subscription management
           await this.billing.manageSubscriptions();
 
@@ -203,7 +188,6 @@ export class SettingsPage implements OnInit {
           await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait for user to return
 
           // Refresh subscription status from RevenueCat
-          console.log("🔄 [Settings] Refreshing subscription status from RevenueCat...");
           await this.billing.checkSubscriptionStatus();
           const successToast = await this.toastController.create({
             message: "✅ Đã mở Google Play. Trạng thái sẽ được cập nhật.",
@@ -213,8 +197,6 @@ export class SettingsPage implements OnInit {
           });
           await successToast.present();
         } catch (error: any) {
-          console.error("❌ [Settings] Error:", error?.message || error);
-
           const errorToast = await this.toastController.create({
             message: "⚠️ Vui lòng hủy subscription trong Google Play",
             duration: 2000,
@@ -270,11 +252,8 @@ export class SettingsPage implements OnInit {
           // Fallback to window.open
           window.open(subscriptionsUrl, "_system");
         }
-        console.log("🌐 [Settings] Opened Google Play Manage Subscriptions");
       }
-    } catch (error) {
-      console.error("❌ [Settings] Failed to open Google Play:", error);
-    }
+    } catch (error) {}
   }
 
   /**
@@ -285,65 +264,6 @@ export class SettingsPage implements OnInit {
       const confirmed = confirm(`${title}\n\n${message}`);
       resolve(confirmed);
     });
-  }
-
-  /**
-   * Reset VIP completely for testing purposes
-   * This will remove all VIP data and status
-   */
-  async resetVipForTesting() {
-    const confirmed = await this.showConfirmDialog(
-      "🧪 Reset VIP (Testing Only)",
-      "Bạn có chắc muốn xóa hoàn toàn gói VIP?\n\nHành động này sẽ:\n- Xóa tất cả dữ liệu VIP\n- Không thể phục hồi\n- Chỉ dùng cho testing",
-    );
-
-    if (!confirmed) {
-      console.log("⚠️ [Settings] Reset VIP cancelled");
-      return;
-    }
-
-    try {
-      console.log("🧪 [Settings] Resetting VIP completely for testing...");
-
-      // Clear from localStorage
-      localStorage.removeItem("user_Vip_status");
-      localStorage.removeItem("subscription_info");
-      localStorage.removeItem("last_auto_delete_timestamp");
-
-      // Clear from services
-      this.subscriptionService.setVip(false);
-
-      // Reset subscription to empty state
-      const emptySubscription: SubscriptionInfo = {
-        isActive: false,
-        status: "active",
-      };
-      this.settingsService.setSubscription(emptySubscription);
-
-      // Update local state
-      this.subscriptionInfo = emptySubscription;
-      this.daysRemaining = null;
-
-      console.log("✅ [Settings] VIP completely reset for testing");
-
-      const toast = await this.toastController.create({
-        message: "✅ Đã xóa VIP hoàn toàn - Sẵn sàng để test!",
-        duration: 2000,
-        position: "top",
-        color: "success",
-      });
-      await toast.present();
-    } catch (error) {
-      console.error("❌ [Settings] Error resetting VIP:", error);
-
-      const toast = await this.toastController.create({
-        message: "❌ Lỗi khi reset VIP",
-        duration: 2000,
-        position: "top",
-        color: "danger",
-      });
-      await toast.present();
-    }
   }
 
   /**
@@ -361,9 +281,7 @@ export class SettingsPage implements OnInit {
 
       // Get count from service
       this.videosBeforeDateCount = await this.packService.getVideosBeforeCount(selectedDate);
-      console.log(`📅 [Settings] Videos before ${this.deleteBeforeDate}: ${this.videosBeforeDateCount}`);
     } catch (error) {
-      console.error("❌ [Settings] Date calculation error:", error);
       this.videosBeforeDateCount = null;
     }
   }
@@ -390,13 +308,11 @@ export class SettingsPage implements OnInit {
     // Confirm before deleting
     const confirmed = confirm(`🗑️ Xóa tất cả video được tạo trước ngày ${formattedDate}?\n\nHành động này không thể hoàn tác!`);
     if (!confirmed) {
-      console.log("❌ [Settings] Delete cancelled by user");
       return;
     }
 
     try {
       this.isDeletingVideos = true;
-      console.log(`🗑️ [Settings] Deleting videos before date: ${this.deleteBeforeDate}`);
 
       // Call pack service to delete videos before date
       // Assuming the service has a method to delete by date range
@@ -421,13 +337,10 @@ export class SettingsPage implements OnInit {
       });
       await toast.present();
 
-      console.log(`✅ [Settings] Videos deleted successfully`);
-
       // Reset the date picker
       this.deleteBeforeDate = "";
       this.videosBeforeDateCount = null;
     } catch (error) {
-      console.error("❌ [Settings] Error deleting videos:", error);
       const toast = await this.toastController.create({
         message: "❌ Lỗi khi xóa video",
         duration: 2000,
@@ -444,7 +357,6 @@ export class SettingsPage implements OnInit {
    * Navigate to Billing Debug page
    */
   navigateToBillingDebug(): void {
-    console.log("🐛 [Settings] Navigating to Billing Debug page");
     this.router.navigate(["/billing-debug"]);
   }
 }

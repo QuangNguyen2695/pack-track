@@ -162,10 +162,7 @@ export class LogCaptureService {
       const logs = this.logs$.value;
       const json = JSON.stringify(logs, null, 2);
       const fileName = `logs-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
-      
-      console.error(`💾 [LogCaptureService] Attempting to save file: ${fileName}`);
-      console.error(`  File size: ${(json.length / 1024).toFixed(2)} KB`);
-      
+
       // Try to save to Documents directory
       try {
         await Filesystem.writeFile({
@@ -182,14 +179,12 @@ export class LogCaptureService {
         });
         
         const fullPath = `${documentsPath.uri}${fileName}`;
-        console.error(`✅ [LogCaptureService] File saved to Documents: ${fullPath}`);
         
         return {
           success: true,
           path: fullPath,
         };
       } catch (docError) {
-        console.warn(`⚠️ Failed to save to Documents, trying Cache directory:`, docError);
         
         // Fallback to Cache directory
         await Filesystem.writeFile({
@@ -206,7 +201,6 @@ export class LogCaptureService {
         });
         
         const fullPath = `${cachePath.uri}${fileName}`;
-        console.error(`✅ [LogCaptureService] File saved to Cache: ${fullPath}`);
         
         return {
           success: true,
@@ -214,7 +208,6 @@ export class LogCaptureService {
         };
       }
     } catch (error) {
-      console.error('❌ [LogCaptureService] Failed to download logs:', error);
       return {
         success: false,
         path: '',
@@ -236,7 +229,6 @@ export class LogCaptureService {
     a.download = `logs-${new Date().toISOString()}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    console.error('💾 [LogCaptureService] Logs downloaded as JSON (browser)');
   }
 
   /**
@@ -255,10 +247,7 @@ export class LogCaptureService {
       });
 
       const fileName = `logs-${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
-      
-      console.error(`💾 [LogCaptureService] Attempting to save CSV: ${fileName}`);
-      console.error(`  File size: ${(csv.length / 1024).toFixed(2)} KB`);
-      
+
       // Try to save to Documents directory
       try {
         await Filesystem.writeFile({
@@ -275,14 +264,12 @@ export class LogCaptureService {
         });
         
         const fullPath = `${documentsPath.uri}${fileName}`;
-        console.error(`✅ [LogCaptureService] CSV saved to Documents: ${fullPath}`);
         
         return {
           success: true,
           path: fullPath,
         };
       } catch (docError) {
-        console.warn(`⚠️ Failed to save CSV to Documents, trying Cache:`, docError);
         
         // Fallback to Cache directory
         await Filesystem.writeFile({
@@ -299,7 +286,6 @@ export class LogCaptureService {
         });
         
         const fullPath = `${cachePath.uri}${fileName}`;
-        console.error(`✅ [LogCaptureService] CSV saved to Cache: ${fullPath}`);
         
         return {
           success: true,
@@ -307,7 +293,6 @@ export class LogCaptureService {
         };
       }
     } catch (error) {
-      console.error('❌ [LogCaptureService] Failed to export CSV:', error);
       return {
         success: false,
         path: '',
@@ -337,7 +322,6 @@ export class LogCaptureService {
     a.download = `logs-${new Date().toISOString()}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    console.error('💾 [LogCaptureService] Logs exported as CSV (browser)');
   }
 
   /**
@@ -365,7 +349,6 @@ export class LogCaptureService {
       // Try using native Clipboard API
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(text);
-        console.log('✅ Logs copied to clipboard (Clipboard API)');
         return true;
       } else {
         // Fallback: create temporary element and copy
@@ -379,14 +362,11 @@ export class LogCaptureService {
         document.body.removeChild(textarea);
         
         if (success) {
-          console.log('✅ Logs copied to clipboard (fallback method)');
         } else {
-          console.error('❌ Failed to copy logs');
         }
         return success;
       }
     } catch (error) {
-      console.error('❌ Error copying logs:', error);
       return false;
     }
   }

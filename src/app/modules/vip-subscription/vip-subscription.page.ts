@@ -6,6 +6,7 @@ import { SubscriptionService } from "@rsApp/shared/services/subscription/subscri
 import { SettingsService, SubscriptionInfo } from "@rsApp/shared/services/settings/settings.service";
 import { BillingService } from "@rsApp/shared/services/billing/billing.service";
 import { ToastController, Platform } from "@ionic/angular";
+import { trigger, transition, style, animate, state } from "@angular/animations";
 
 interface VipPackage {
   id: string;
@@ -24,6 +25,15 @@ interface VipPackage {
   templateUrl: "./vip-subscription.page.html",
   styleUrls: ["./vip-subscription.page.scss"],
   standalone: false,
+  animations: [
+    trigger("fadeInOut", [
+      transition(":enter", [
+        style({ opacity: 0, transform: "scale(0.98)" }),
+        animate("400ms 50ms cubic-bezier(0.34, 1.56, 0.64, 1)", style({ opacity: 1, transform: "scale(1)" })),
+      ]),
+      transition(":leave", [animate("300ms cubic-bezier(0.4, 0, 0.2, 1)", style({ opacity: 0, transform: "scale(0.98)" }))]),
+    ]),
+  ],
 })
 export class VipSubscriptionPage implements OnInit {
   packages: VipPackage[] = [
@@ -73,7 +83,6 @@ export class VipSubscriptionPage implements OnInit {
   ) {}
 
   ngOnInit() {
-    console.error("💎 [VIP] Subscription page loaded");
     this.refreshSubscriptionStatus();
   }
 
@@ -83,11 +92,8 @@ export class VipSubscriptionPage implements OnInit {
    */
   async refreshSubscriptionStatus(): Promise<void> {
     try {
-      console.log("🔄 [VIP] Refreshing subscription status from RevenueCat...");
       await this.billing.checkSubscriptionStatus();
-      console.log("✅ [VIP] Subscription status refreshed");
     } catch (error: any) {
-      console.error("❌ [VIP] Failed to refresh subscription status:", error?.message || error);
       // Don't block page load if refresh fails
     }
   }
@@ -114,7 +120,6 @@ export class VipSubscriptionPage implements OnInit {
    * Select package and show confirmation
    */
   selectPackage(pkg: VipPackage) {
-    console.error("📦 [VIP] Selected package:", pkg.id);
     this.selectedPackage = pkg;
   }
 
@@ -125,7 +130,7 @@ export class VipSubscriptionPage implements OnInit {
     if (!this.selectedPackage) {
       const toast = await this.toastController.create({
         message: "Vui lòng chọn một gói",
-        duration: 2000,
+        duration: 3000,
         position: "top",
         color: "warning",
       });
@@ -136,26 +141,16 @@ export class VipSubscriptionPage implements OnInit {
     this.isProcessing = true;
 
     try {
-      console.error(`💳 [VIP] Processing subscription for ${this.selectedPackage.name}...`);
-      console.error(`📦 [VIP] Product ID: ${this.selectedPackage.productId}`);
-
       // Check if on mobile platform
       const isMobile = this.platform.is("capacitor") || this.platform.is("cordova");
 
       if (isMobile) {
         // Use RevenueCat Billing for real purchases
-        console.error("🎮 [VIP] Using RevenueCat Billing...");
 
         // Pass the product ID to purchase the correct package
         const purchaseSuccess = await this.billing.purchaseSubscription(this.selectedPackage.productId);
 
         if (purchaseSuccess) {
-          console.error("✅ [VIP] Purchase initiated - waiting for billing response");
-
-          // The BillingService will handle the subscription update automatically
-          // We just wait a bit and then navigate back
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
           const successToast = await this.toastController.create({
             message: `🎉 Chúc mừng! Bạn đã nâng cấp VIP ${this.selectedPackage.name}. Thưởng thức không quảng cáo!`,
             duration: 3000,
@@ -167,13 +162,12 @@ export class VipSubscriptionPage implements OnInit {
           // Navigate back after success
           setTimeout(() => {
             this.navController.back();
-          }, 2000);
+          }, 1000);
         } else {
           throw new Error("Purchase failed in RevenueCat Billing");
         }
       } else {
         // Fallback for testing on web - simulate purchase
-        console.error("🌐 [VIP] Testing mode (web) - simulating purchase...");
 
         // Show processing toast
         const processingToast = await this.toastController.create({
@@ -204,7 +198,6 @@ export class VipSubscriptionPage implements OnInit {
         // Update SubscriptionService and SettingsService
         this.subscriptionService.setVip(true);
         this.settingsService.setSubscription(subscriptionInfo);
-        console.error(`✅ [VIP] Test subscription activated: ${this.selectedPackage.name} (${this.selectedPackage.productId})`);
 
         // Show success toast
         const successToast = await this.toastController.create({
@@ -218,14 +211,12 @@ export class VipSubscriptionPage implements OnInit {
         // Navigate back to home after success
         setTimeout(() => {
           this.navController.back();
-        }, 2000);
+        }, 1000);
       }
     } catch (error) {
-      console.error("❌ [VIP] Subscription failed:", error);
-
       const errorToast = await this.toastController.create({
         message: "Lỗi khi đăng ký. Vui lòng thử lại sau.",
-        duration: 100000,
+        duration: 3000,
         position: "top",
         color: "danger",
       });
@@ -239,7 +230,6 @@ export class VipSubscriptionPage implements OnInit {
    * Go back to home
    */
   goBack() {
-    console.error("⬅️ [VIP] Navigating back to home");
     this.navController.back();
   }
 }

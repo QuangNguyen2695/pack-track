@@ -53,10 +53,8 @@ export class BankTransferService {
             };
           }
         }
-        console.log("🏦 [BankTransferService] Account loaded from Firebase:", this.bankAccount);
       }
     } catch (error) {
-      console.error("❌ [BankTransferService] Failed to load bank account:", error);
     }
   }
 
@@ -86,7 +84,6 @@ export class BankTransferService {
       await this.showQRCodeTransfer(amount, description, bankCode);
       return true;
     } catch (error) {
-      console.error("❌ [BankTransfer] Failed to open bank transfer:", error);
       return false;
     }
   }
@@ -123,8 +120,6 @@ export class BankTransferService {
 
       // Generate QR code URL
       const qrUrl = this.generateVietQRUrl(amount, bankAccount.accountNumber, bankAccount.accountName, description, bankAccount.bin);
-
-      console.log("📱 [BankTransfer] QR Code URL:", qrUrl);
 
       // Remove existing modal if any
       const existingModal = document.getElementById("bank-qr-modal");
@@ -227,7 +222,6 @@ export class BankTransferService {
       img.crossOrigin = "anonymous";
 
       img.onload = () => {
-        console.log("✅ [BankTransfer] QR Code loaded successfully");
         const container = document.getElementById("qr-container");
         if (container) {
           container.innerHTML = `<img src="${qrUrl}" alt="QR Code" style="width: 260px; height: 260px; border-radius: 8px; background: white; padding: 8px;" />`;
@@ -235,7 +229,6 @@ export class BankTransferService {
       };
 
       img.onerror = () => {
-        console.error("❌ [BankTransfer] QR Code failed to load from URL:", qrUrl);
         const container = document.getElementById("qr-container");
         if (container) {
           container.innerHTML = `
@@ -292,9 +285,7 @@ Nội dung: ${description}
         }
       });
 
-      console.log("✅ [BankTransfer] QR Code modal displayed with loading indicator");
     } catch (error) {
-      console.error("❌ [BankTransfer] Error showing QR code:", error);
       // Fallback to bank details
       await this.showBankDetails(amount, bankCode);
     }
@@ -307,7 +298,6 @@ Nội dung: ${description}
     try {
       const bankAccount = this.getBankAccount();
       if (!bankAccount) {
-        console.warn(`⚠️ [BankTransfer] No bank account configured`);
         return;
       }
 
@@ -329,10 +319,7 @@ Số tiền: ${amount.toLocaleString("vi-VN")} VND
       // Show alert
       alert(bankDetails + "\n\n✅ Thông tin đã được sao chép vào bộ nhớ tạm!\n\nVui lòng chuyển khoản vào tài khoản trên.");
 
-      console.log("✅ [BankTransfer] Bank details displayed:");
-      console.log(bankDetails);
     } catch (error) {
-      console.error("❌ [BankTransfer] Error showing bank details:", error);
     }
   }
 
@@ -343,7 +330,6 @@ Số tiền: ${amount.toLocaleString("vi-VN")} VND
     try {
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(text);
-        console.log("✅ [BankTransfer] Copied to clipboard");
       } else {
         // Fallback for older browsers
         const textarea = document.createElement("textarea");
@@ -352,10 +338,8 @@ Số tiền: ${amount.toLocaleString("vi-VN")} VND
         textarea.select();
         document.execCommand("copy");
         document.body.removeChild(textarea);
-        console.log("✅ [BankTransfer] Copied to clipboard (fallback)");
       }
     } catch (error) {
-      console.error("❌ [BankTransfer] Failed to copy to clipboard:", error);
     }
   }
 

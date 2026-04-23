@@ -52,39 +52,24 @@ export class AdmobService {
    * Should be called from AppComponent after getting Firebase config
    */
   setAdIds(bannerAds: string, interstitialAds: string, rewardAds: string, appOpenAds?: string): void {
-    console.log("🎯 [AdMob] Setting Ad IDs from config:", {
-      bannerAds,
-      interstitialAds,
-      rewardAds,
-      appOpenAds,
-    });
-
-    if (bannerAds && bannerAds.trim()) {
+        if (bannerAds && bannerAds.trim()) {
       this.bannerAdId = bannerAds;
-      console.log("✅ [AdMob] Banner ID set to:", this.bannerAdId);
     } else {
-      console.warn("⚠️ [AdMob] Banner ID is empty or invalid");
     }
 
     if (interstitialAds && interstitialAds.trim()) {
       this.interAdId = interstitialAds;
-      console.log("✅ [AdMob] Interstitial ID set to:", this.interAdId);
     } else {
-      console.warn("⚠️ [AdMob] Interstitial ID is empty or invalid");
     }
 
     if (rewardAds && rewardAds.trim()) {
       this.rewardAdId = rewardAds;
-      console.log("✅ [AdMob] Reward ID set to:", this.rewardAdId);
     } else {
-      console.warn("⚠️ [AdMob] Reward ID is empty or invalid");
     }
 
     if (appOpenAds && appOpenAds.trim()) {
       this.appOpenAdId = appOpenAds;
-      console.log("✅ [AdMob] App Open ID set to:", this.appOpenAdId);
     } else {
-      console.warn("⚠️ [AdMob] App Open ID is empty or invalid");
     }
   }
 
@@ -106,9 +91,7 @@ export class AdmobService {
 
       // Xin Tracking (iOS) & cập nhật consent (UMP)
       await this.requestConsent();
-      console.log("✅ [AdMob] Init complete");
     } catch (error: any) {
-      console.error("❌ [AdMob] Init failed:", error?.message || error);
       throw error;
     }
   }
@@ -128,7 +111,6 @@ export class AdmobService {
     });
 
     AdMob.addListener(RewardAdPluginEvents.FailedToLoad, (error: any) => {
-      console.error("❌ [AdMob] Rewarded failed to load:", error);
       this.rewardedAdReady = false;
     });
 
@@ -168,7 +150,6 @@ export class AdmobService {
         return;
       }
     } catch (vipCheckError) {
-      console.error("❌ [AdMob] Error checking VIP status:", vipCheckError);
     }
 
     try {
@@ -185,20 +166,16 @@ export class AdmobService {
       };
 
       await AdMob.showBanner(opts);
-      console.log("✅ [AdMob] Banner shown successfully");
     } catch (error: any) {
-      console.error("❌ [AdMob] Banner error:", error?.message || error);
 
       // Check if it's a "plugin not implemented" error
       const isPluginNotImpl = error?.message?.includes("not implemented") || error?.code === "UNIMPLEMENTED";
       if (isPluginNotImpl) {
-        console.warn("⚠️ [AdMob] AdMob plugin not available on this platform");
         return;
       }
 
       // Nếu lỗi "No fill" và chưa dùng test ads, thử lại với test ads
       if (error?.code === 3 && !this.useTestAds) {
-        console.warn("⚠️ [AdMob] No fill with production banner, falling back to test ads...");
         this.useTestAds = true;
         await this.showBanner(atBottom); // Retry with test ads
       }
@@ -214,7 +191,6 @@ export class AdmobService {
   async preloadInterstitial() {
     // 🚫 Skip loading interstitial for premium users
     if (this.subscriptionService.isVipUser()) {
-      console.log("💎 [AdMob] User is VIP - skipping interstitial preload");
       return;
     }
 
@@ -227,20 +203,16 @@ export class AdmobService {
       };
 
       await AdMob.prepareInterstitial(opts);
-      console.log("✅ [AdMob] Interstitial preloaded");
     } catch (error: any) {
-      console.error("❌ [AdMob] Interstitial preload error:", error?.message || error);
 
       // Check if it's a "plugin not implemented" error
       const isPluginNotImpl = error?.message?.includes("not implemented") || error?.code === "UNIMPLEMENTED";
       if (isPluginNotImpl) {
-        console.warn("⚠️ [AdMob] AdMob plugin not available on this platform");
         return;
       }
 
       // Nếu lỗi "No fill" và chưa dùng test ads, thử lại với test ads
       if (error?.code === 3 && !this.useTestAds) {
-        console.warn("⚠️ [AdMob] No fill with production ads, falling back to test ads...");
         this.useTestAds = true;
         await this.preloadInterstitial(); // Retry with test ads
       }
@@ -255,11 +227,9 @@ export class AdmobService {
 
     try {
       await AdMob.showInterstitial();
-      console.log("✅ [AdMob] Interstitial shown");
       // Nạp lại cho lần sau
       await this.preloadInterstitial();
     } catch (error: any) {
-      console.warn("❌ [AdMob] showInterstitial error:", error?.message || error);
     }
   }
 
@@ -267,29 +237,23 @@ export class AdmobService {
   async showAppOpenAd() {
     try {
       if (!this.appOpenAdId) {
-        console.warn("⚠️ [AdMob] App Open ad ID is not set");
         return;
       }
 
       // 🚫 Skip for premium users
       if (this.subscriptionService.isVipUser()) {
-        console.log("💎 [AdMob] User is VIP, skipping app open ad");
         return;
       }
 
       const adId = this.useTestAds ? this.TEST_APP_OPEN : this.appOpenAdId;
-      console.log("📱 [AdMob] Showing app open ad with ID:", adId);
 
       // TODO: Implement app open ads using capacitor-admob-ads
       // App open ads support to be configured with the new plugin
-      console.warn("⚠️ [AdMob] App open ads support pending with capacitor-admob-ads configuration");
       return;
     } catch (error: any) {
-      console.error("❌ [AdMob] App open ad error:", error);
 
       // Fallback to test ads on error
       if (!this.useTestAds) {
-        console.warn("⚠️ [AdMob] Error showing app open ad, falling back to test ads...");
         this.useTestAds = true;
         await this.showAppOpenAd();
       }
@@ -300,7 +264,6 @@ export class AdmobService {
   async preloadRewarded() {
     // 🚫 Skip loading rewarded ads for premium users
     if (this.subscriptionService.isVipUser()) {
-      console.log("💎 [AdMob] User is VIP - skipping rewarded ad preload");
       this.rewardedAdReady = false;
       return;
     }
@@ -309,7 +272,6 @@ export class AdmobService {
       this.rewardedAdReady = false;
 
       const adId = this.useTestAds ? this.TEST_REWARD : this.rewardAdId;
-      console.log("🚀 ~ AdmobService ~ showBanner ~ adId:", adId);
 
       const opts: RewardAdOptions = {
         adId: adId,
@@ -318,12 +280,10 @@ export class AdmobService {
 
       await AdMob.prepareRewardVideoAd(opts);
     } catch (error: any) {
-      console.error("❌ [AdMob] Rewarded preload error:", error);
       this.rewardedAdReady = false;
 
       // Nếu lỗi "No fill" và chưa dùng test ads, thử lại với test ads
       if (error?.code === 3 && !this.useTestAds) {
-        console.warn("⚠️ [AdMob] No fill with production ads, falling back to test ads...");
         this.useTestAds = true;
         await this.preloadRewarded(); // Retry with test ads
       }
@@ -333,13 +293,11 @@ export class AdmobService {
   async showRewarded(): Promise<AdMobRewardItem | null> {
     // 🚫 Block rewarded ads for premium users
     if (this.subscriptionService.isVipUser()) {
-      console.log("💎 [AdMob] User is VIP - blocking rewarded ad display");
       return null;
     }
 
     try {
       if (!this.rewardedAdReady) {
-        console.warn("⚠️ [AdMob] Rewarded ad not ready yet");
         return null;
       }
 
@@ -359,7 +317,6 @@ export class AdmobService {
 
       return reward ?? null;
     } catch (e) {
-      console.warn("❌ [AdMob] showRewarded error:", e);
       this.rewardedAdReady = false;
 
       // Cleanup resolver nếu có lỗi
@@ -412,7 +369,6 @@ export class AdmobService {
         }
 
         if (!this.rewardedAdReady) {
-          console.warn("⚠️ Rewarded ad failed to load in time");
           return false;
         }
 
@@ -429,7 +385,6 @@ export class AdmobService {
 
       return false;
     } catch (error) {
-      console.warn("❌ Failed to show reward ad:", error);
       return false;
     }
   }

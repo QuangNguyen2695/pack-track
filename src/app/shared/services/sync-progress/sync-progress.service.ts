@@ -64,7 +64,6 @@ export class SyncProgressService {
         return false; // Not enough time has passed
       }
     } catch (error) {
-      console.warn("⚠️ [AutoDelete] Error checking last auto-delete time:", error);
       return true; // On error, allow check
     }
   }
@@ -76,7 +75,6 @@ export class SyncProgressService {
     try {
       localStorage.setItem(this.LAST_AUTO_DELETE_KEY, Date.now().toString());
     } catch (error) {
-      console.warn("⚠️ [AutoDelete] Error updating last auto-delete time:", error);
     }
   }
 
@@ -237,7 +235,6 @@ export class SyncProgressService {
           deletedCount++;
           completedCount++;
         } catch (error) {
-          console.error(`❌ [AutoDelete] Error deleting ${pack.orderCode}:`, error);
           failedCount++;
           completedCount++;
         }
@@ -248,7 +245,6 @@ export class SyncProgressService {
 
       this.completeDelete(failedCount === 0);
     } catch (error) {
-      console.error("❌ [AutoDelete] Error in processAutoDelete:", error);
       this.setError();
     }
   }

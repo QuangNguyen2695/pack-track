@@ -45,10 +45,8 @@ export class MomoService {
             this.momoAccount = { phone, name: name || "" };
           }
         }
-        console.log("💳 [MomoService] Account loaded from Firebase:", this.momoAccount);
       }
     } catch (error) {
-      console.error("❌ [MomoService] Failed to load Momo account:", error);
     }
   }
 
@@ -191,7 +189,6 @@ export class MomoService {
       img.crossOrigin = "anonymous";
 
       img.onload = () => {
-        console.log("✅ [Momo] QR Code loaded successfully");
         const container = document.getElementById("momo-qr-container");
         if (container) {
           container.innerHTML = `<img src="${qrUrl}" alt="Momo QR Code" style="width: 260px; height: 260px; border-radius: 8px; background: white; padding: 8px;" />`;
@@ -199,7 +196,6 @@ export class MomoService {
       };
 
       img.onerror = () => {
-        console.error("❌ [Momo] QR Code failed to load from URL:", qrUrl);
         const container = document.getElementById("momo-qr-container");
         if (container) {
           container.innerHTML = `
@@ -228,7 +224,6 @@ export class MomoService {
       const openMomoBtn = document.getElementById("open-momo-app");
       if (openMomoBtn) {
         openMomoBtn.addEventListener("click", async () => {
-          console.log("🔗 [Momo] Opening Momo app with deep link...");
           window.location.href = momoLink;
           // Close modal after delay
           setTimeout(() => {
@@ -244,9 +239,7 @@ export class MomoService {
         }
       });
 
-      console.log("✅ [Momo] QR Code modal displayed");
     } catch (error) {
-      console.error("❌ [Momo] Error showing QR code:", error);
     }
   }
 
@@ -284,10 +277,8 @@ export class MomoService {
   private async checkMomoInstalled(): Promise<boolean> {
     try {
       // For testing - assume Momo is available
-      console.log("✅ [Momo] Momo app check skipped - using QR code modal");
       return true;
     } catch (error) {
-      console.error("❌ [Momo] Error checking Momo installation:", error);
       return false;
     }
   }
@@ -298,7 +289,6 @@ export class MomoService {
    */
   handleMomoCallback(resultUrl: string): boolean {
     try {
-      console.log("📨 [Momo] Handling callback:", resultUrl);
 
       // Parse callback URL for payment status
       const url = new URL(resultUrl);
@@ -306,14 +296,11 @@ export class MomoService {
       const message = url.searchParams.get("message");
 
       if (status === "0" || status === "success") {
-        console.log("✅ [Momo] Payment successful:", message);
         return true;
       } else {
-        console.warn("❌ [Momo] Payment failed:", message);
         return false;
       }
     } catch (error) {
-      console.error("❌ [Momo] Error parsing callback:", error);
       return false;
     }
   }

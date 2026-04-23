@@ -103,21 +103,26 @@
 </ion-content>
 
 <!-- Fixed Subscribe Button at Bottom -->
-<div class="fixed-button-footer flex items-center justify-center w-full px-4 py-3 bg-white border-t shadow-lg">
-  <ng-container *ngIf="!isProcessing">
-    <ng-container *ngIf="selectedPackage"
-      ><button
+<div class="fixed-button-footer !flex !items-center !justify-center w-full px-4 py-3 bg-white border-t shadow-lg">
+  <!-- Submit Button -->
+  <div *ngIf="!isProcessing" [@fadeInOut] class="w-full flex items-center justify-center">
+    <ng-container *ngIf="selectedPackage">
+      <button
         nz-button
         nzType="primary"
         nzBlock
         nzSize="large"
         [disabled]="!selectedPackage || isProcessing"
         (click)="subscribe()"
-        class="mb-2 !bg-red-500 !border-red-500 !text-white hover:!bg-red-600 !transition-colors !px-3 !py-2 rounded-lg text-2xl font-bold"
+        class="subscribe-button mb-2 !bg-red-500 !border-red-500 !text-white hover:!bg-red-600 hover:!shadow-lg !transition-all !px-3 !py-2 rounded-lg text-2xl font-bold"
       >
-        Đăng ký {{ selectedPackage.name }}
-      </button></ng-container
-    >
-  </ng-container>
-  <ng-container *ngIf="isProcessing">Đang xử lý...</ng-container>
+        <span class="button-text">Đăng ký {{ selectedPackage.name }}</span>
+      </button>
+    </ng-container>
+  </div>
+  <!-- Processing State -->
+  <div *ngIf="isProcessing" [@fadeInOut] class="flex items-center justify-center gap-2 text-lg font-semibold text-gray-700">
+    <span class="loading-spinner"></span>
+    <span>Đang xử lý...</span>
+  </div>
 </div>

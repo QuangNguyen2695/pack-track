@@ -12,7 +12,7 @@ export class SoundService {
       this.audio.currentTime = 0;
     }
     this.audio = new Audio(src);
-    this.audio.play().catch(console.error);
+    this.audio.play().catch(() => {});
   }
 
   playAndWait(src: string): Promise<void> {

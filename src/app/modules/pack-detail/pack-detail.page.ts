@@ -61,12 +61,10 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
     // Reload return videos when entering the page if viewing normal video
     if (!this.isViewingReturnVideo && this.pack?.orderCode) {
-      console.log(`📦 [PackDetail] Reloading return videos on view enter`);
       this.loadReturnVideos();
     }
     // Reload normal videos when entering the page if viewing return video
     if (this.isViewingReturnVideo && this.pack?.orderCode) {
-      console.log(`🎥 [PackDetail] Reloading normal videos on view enter`);
       this.loadNormalVideos();
     }
   }
@@ -88,7 +86,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
     // Check if viewing a return video
     this.isViewingReturnVideo = this.pack?.videoType === "return";
-    console.log(`📦 [PackDetail] Viewing pack: ${this.pack?.packNumber}, isReturnVideo: ${this.isViewingReturnVideo}`);
 
     this.resolveVideo().finally(() => (this.loading = false));
 
@@ -111,10 +108,8 @@ export class PackDetailPage implements OnInit, OnDestroy {
       this.packService.getReturnVideosByOrderCode(this.pack.orderCode).subscribe({
         next: (videos) => {
           this.returnVideos = videos;
-          console.log(`📦 [PackDetail] Loaded ${videos.length} return videos for order: ${this.pack?.orderCode}`);
         },
         error: (err) => {
-          console.error("❌ [PackDetail] Failed to load return videos:", err);
           this.returnVideos = [];
         },
       });
@@ -131,10 +126,8 @@ export class PackDetailPage implements OnInit, OnDestroy {
       this.packService.getNormalVideosByOrderCode(this.pack.orderCode).subscribe({
         next: (videos) => {
           this.normalVideos = videos;
-          console.log(`🎥 [PackDetail] Loaded ${videos.length} normal videos for order: ${this.pack?.orderCode}`);
         },
         error: (err) => {
-          console.error("❌ [PackDetail] Failed to load normal videos:", err);
           this.normalVideos = [];
         },
       });
@@ -246,9 +239,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
       const packTitle = this.pack.packNumber || "Video Pack";
       const shareText = `📦 PackTrack: ${packTitle}\n\n🎥 Chia sẻ video từ ứng dụng PackTrack`;
 
-      console.log("🔗 [Share] Starting video share process...");
-      console.log("📝 [Share] Video storage key:", key.substring(0, 50));
-
       // Copy video to cache for sharing (required for Messenger, Zalo compatibility)
       tempCacheFile = await this.copyVideoToCacheForSharing(key);
 
@@ -256,8 +246,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
         toast.error("❌ Không thể chuẩn bị video để chia sẻ");
         return;
       }
-
-      console.log("✅ [Share] Video copied to cache:", tempCacheFile);
 
       // Share from cache location
       await Share.share({
@@ -267,22 +255,14 @@ export class PackDetailPage implements OnInit, OnDestroy {
         files: [tempCacheFile], // File path in cache accessible to other apps
       });
 
-      console.log("✅ [Share] Share dialog opened successfully");
       toast.success("✅ Video được gửi!");
     } catch (error: any) {
-      console.error("❌ [Share] Share error:", error);
 
       if (error?.code === 6) {
         toast.error("❌ Không có ứng dụng để chia sẻ");
-        console.error("Share cancelled or no apps available");
       } else {
         toast.error("❌ Không thể chia sẻ video. Vui lòng kiểm tra quyền.");
-        console.error("Share error details:", {
-          message: error?.message,
-          code: error?.code,
-          domain: error?.domain,
-        });
-      }
+              }
     } finally {
       this.isSharing = false;
       // Cleanup temp cache file after a delay (allow Share to complete)
@@ -300,8 +280,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
     try {
       const fileName = this.pack?.videoFileName || `${this.pack?.packNumber || "video"}.mp4`;
 
-      console.log("📋 [Share] Preparing video for sharing:", fileName);
-
       // Read video file
       let videoData: string;
 
@@ -315,7 +293,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
           if (readResult?.data) {
             videoData = readResult.data as string;
-            console.log("✅ Read video from URI, size:", (videoData.length / 1024 / 1024).toFixed(2), "MB");
           } else {
             // Fallback: try fetching via file URI
             const response = await fetch(Capacitor.convertFileSrc(videoKey));
@@ -323,10 +300,8 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
             const blob = await response.blob();
             videoData = await this.blobToBase64(blob);
-            console.log("✅ Fetched video from file URI, size:", (videoData.length / 1024 / 1024).toFixed(2), "MB");
           }
         } catch (e) {
-          console.warn("⚠️ Could not read from URI, trying direct path:", e);
           // Try as direct filesystem path
           const readResult = await Filesystem.readFile({
             path: videoKey.replace(/^file:\/\//, "").replace(/^content:\/\//, ""),
@@ -353,7 +328,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
       // Write to cache directory (accessible to Share API)
       const cacheFileName = `share_${Date.now()}_${fileName}`;
-      console.log("📝 [Share] Writing to cache:", cacheFileName);
 
       await Filesystem.writeFile({
         path: cacheFileName,
@@ -368,10 +342,8 @@ export class PackDetailPage implements OnInit, OnDestroy {
         path: cacheFileName,
       });
 
-      console.log("✅ [Share] Video ready in cache:", cacheDir.uri);
       return cacheDir.uri; // Return the proper URI
     } catch (error) {
-      console.error("❌ [Share] Failed to copy video to cache:", error);
       return undefined;
     }
   }
@@ -388,10 +360,8 @@ export class PackDetailPage implements OnInit, OnDestroy {
           path: fileName,
           directory: Directory.Cache,
         });
-        console.log("🧹 [Share] Cleaned up cache file:", fileName);
       }
     } catch (error) {
-      console.warn("⚠️ [Share] Failed to cleanup cache file:", error);
       // Non-critical, ignore
     }
   }
@@ -401,8 +371,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
     const packId = this.pack._id;
     const orderCode = this.pack.orderCode || this.pack.packNumber;
-
-    console.log(`🎥 [PackDetail] Recording return video for pack: ${packId}, order: ${orderCode}`);
 
     // Navigate to scan-record with params
     this.router.navigate(["/scan-record"], {
@@ -416,7 +384,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
   openReturnVideoDetail(returnVideo: PackDoc) {
     if (!returnVideo) return;
-    console.log(`📦 [PackDetail] Opening return video: ${returnVideo._id}`);
     this.router.navigate(["/pack-return-detail"], {
       state: { pack: returnVideo },
     });
@@ -424,7 +391,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
   openNormalVideoDetail(normalVideo: PackDoc) {
     if (!normalVideo) return;
-    console.log(`🎥 [PackDetail] Opening normal video: ${normalVideo._id}`);
     this.router.navigate(["/pack-detail"], {
       state: { pack: normalVideo },
     });
@@ -476,11 +442,9 @@ export class PackDetailPage implements OnInit, OnDestroy {
   }
 
   onThumbnailLoad(packId: string): void {
-    console.log(`✅ Thumbnail loaded for pack: ${packId}`);
   }
 
   onThumbnailError(packId: string, event: any): void {
-    console.error(`❌ Thumbnail failed for pack: ${packId}`, event);
     event.target.style.display = "none";
   }
 
@@ -489,7 +453,6 @@ export class PackDetailPage implements OnInit, OnDestroy {
 
     // Ưu tiên URL nếu có
     if (thumbnailUrl && thumbnailUrl.startsWith("http")) {
-      console.log("📸 Using thumbnail URL:", thumbnailUrl?.substring(0, 50));
       return thumbnailUrl;
     }
 
@@ -498,25 +461,20 @@ export class PackDetailPage implements OnInit, OnDestroy {
       try {
         // Xử lý prefix nếu có
         let b64 = thumbnailBase64.trim();
-        console.log("📸 Thumbnail base64 length:", b64.length, "starts with:", b64.substring(0, 30));
 
         // Nếu đã có prefix, trả về ngay
         if (b64.startsWith("data:image")) {
-          console.log("✅ Base64 already has prefix, using as-is");
           return b64;
         }
 
         // Nếu chưa có prefix, thêm vào
         if (!b64.includes("base64,")) {
           b64 = `data:image/jpeg;base64,${b64}`;
-          console.log("✅ Added base64 prefix, total length:", b64.length);
           return b64;
         }
 
-        console.log("✅ Base64 has partial prefix?, returning as-is");
         return b64;
       } catch (e) {
-        console.error("❌ Failed to process thumbnail base64:", e);
         return "";
       }
     }

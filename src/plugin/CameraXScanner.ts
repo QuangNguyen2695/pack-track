@@ -109,7 +109,6 @@ export const CameraBarcode: CameraBarcodePlugin = {
   async addListener(eventName: "barcode", listenerFunc: (event: BarcodeEvent) => void) {
     // Cho phép debug trên web: có thể return dummy handle để không crash
     if (!isNative()) {
-      console.warn("[CameraBarcode] addListener called on web; no-op.");
       return {
         remove: async () => void 0,
       } as unknown as PluginListenerHandle;

@@ -13,7 +13,6 @@ export class SubscriptionService {
   public isVip$: Observable<boolean> = this.isVipSubject.asObservable();
 
   constructor() {
-    console.log("✅ [Subscription] Service initialized");
     this.loadVipStatus();
   }
 
@@ -28,10 +27,8 @@ export class SubscriptionService {
       if (stored) {
         const isVip = JSON.parse(stored);
         this.isVipSubject.next(isVip);
-        console.log(`📥 [Subscription] Loaded from storage: ${isVip}`);
       }
     } catch (error) {
-      console.warn("⚠️ [Subscription] Failed to load Vip status:", error);
       this.isVipSubject.next(false);
     }
   }
@@ -52,9 +49,7 @@ export class SubscriptionService {
     this.isVipSubject.next(value);
     try {
       localStorage.setItem("user_Vip_status", JSON.stringify(value));
-      console.log(`💎 [Subscription] Vip status set to: ${value}`);
     } catch (error) {
-      console.warn("⚠️ [Subscription] Failed to save Vip status:", error);
     }
   }
 
@@ -73,9 +68,7 @@ export class SubscriptionService {
     this.isVipSubject.next(false);
     try {
       localStorage.removeItem("user_Vip_status");
-      console.log("🗑️ [Subscription] Vip status cleared");
     } catch (error) {
-      console.warn("⚠️ [Subscription] Failed to clear Vip status:", error);
     }
   }
 

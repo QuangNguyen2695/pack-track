@@ -45,7 +45,6 @@ export class StatisticsService {
     const stats = this.getTodayStats();
     stats.adsPlayed++;
     this.saveStats(stats);
-    console.log("📊 [Statistics] Ads played incremented:", stats);
     // Emit event để notify subscribers
     this.statsChanged$.next(stats);
   }
@@ -57,7 +56,6 @@ export class StatisticsService {
     const stats = this.getTodayStats();
     stats.videosRecorded++;
     this.saveStats(stats);
-    console.log("📊 [Statistics] Videos recorded incremented:", stats);
     // Emit event để notify subscribers
     this.statsChanged$.next(stats);
   }
@@ -95,7 +93,7 @@ export class StatisticsService {
         return JSON.parse(stored);
       }
     } catch (error) {
-      console.error("Error loading stats:", error);
+      // Error loading stats silently
     }
     
     const today = this.getTodayDateString();
@@ -113,7 +111,7 @@ export class StatisticsService {
     try {
       localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stats));
     } catch (error) {
-      console.error("Error saving stats:", error);
+      // Error saving stats silently
     }
   }
 }

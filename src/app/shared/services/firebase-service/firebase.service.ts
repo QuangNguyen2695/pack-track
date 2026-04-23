@@ -28,7 +28,6 @@ export class FirebaseService {
 
       this.isInitialized = true;
     } catch (err) {
-      console.error("❌ [FirebaseService] Init error:", err);
       this.appState.setAppCheckFailed("Ứng dụng không thể xác minh. Vui lòng cập nhật hoặc cài đặt lại từ Google Play Store.");
     }
   }
@@ -116,23 +115,17 @@ export class FirebaseService {
         bankAccount: bank_account.value || cachedConfig?.bankAccount || "",
       };
 
-      console.log("🔀 [Firebase] Config after merging Firebase + Cache:", config);
-
       // 💾 Lưu cache nếu có ít nhất 1 property không trống
       if (config.admobBanner || config.admobInter || config.admobReward) {
         this.setCachedConfig(config);
-        console.log("💾 [Firebase] Config cached with timestamp");
       }
 
-      console.log("✅ [Firebase] Final config returned:", config);
       return config;
     } catch (err) {
-      console.error("❌ [Firebase] Fetch config error:", err);
 
       // ⚠️ Nếu fetch thất bại, lấy cache cũ
       const oldCache = this.getOldCachedConfig();
       if (oldCache) {
-        console.warn("⚠️ [Firebase] Fetch failed, using cache fallback:", oldCache);
         return oldCache;
       }
 
@@ -148,9 +141,7 @@ export class FirebaseService {
       const timestamp = Date.now();
       localStorage.setItem(this.CONFIG_CACHE_KEY, JSON.stringify(config));
       localStorage.setItem(this.CONFIG_TIMESTAMP_KEY, timestamp.toString());
-      console.log(`💾 [Firebase] Config saved to cache at ${new Date(timestamp).toLocaleString()}`);
     } catch (err) {
-      console.warn("⚠️ [Firebase] Failed to save cache:", err);
     }
   }
 
@@ -163,7 +154,6 @@ export class FirebaseService {
       const timestamp = localStorage.getItem(this.CONFIG_TIMESTAMP_KEY);
 
       if (!cachedConfig || !timestamp) {
-        console.log("📭 [Firebase] No cache found");
         return null;
       }
 
@@ -173,16 +163,11 @@ export class FirebaseService {
       const ageHours = Math.round(ageMs / (1000 * 60 * 60));
 
       if (ageMs < this.CACHE_DURATION_MS) {
-        console.log(
-          `✅ [Firebase] Cache is valid (${ageHours}h old, expires in ${Math.round((this.CACHE_DURATION_MS - ageMs) / (1000 * 60 * 60))}h)`,
-        );
         return JSON.parse(cachedConfig);
       } else {
-        console.log(`⏰ [Firebase] Cache expired (${ageHours}h old, max 48h)`);
         return null;
       }
     } catch (err) {
-      console.warn("⚠️ [Firebase] Error reading cache:", err);
       return null;
     }
   }
@@ -197,7 +182,6 @@ export class FirebaseService {
         return JSON.parse(cachedConfig);
       }
     } catch (err) {
-      console.warn("⚠️ [Firebase] Error reading old cache:", err);
     }
     return null;
   }

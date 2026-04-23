@@ -15,7 +15,6 @@ import { DeviceInfoService } from "@rsApp/shared/services/device/device-info.ser
 import { VideoRecoveryService } from "@rsApp/shared/services/video-recovery/video-recovery.service";
 import { Router } from "@angular/router";
 import { toast } from "ngx-sonner";
-import { NativeAdDisplayComponent } from "@rsApp/shared/components/native-ad-display/native-ad-display.component";
 import { AffiliateService } from "@rsApp/shared/services/affiliate-service/affiliate.service";
 import { AffiliateItem, AffiliatePack, AffiliateSingleProduct } from "@rsApp/shared/services/affiliate-service/affiliate.model";
 
@@ -25,7 +24,7 @@ type SortOpt = "newest" | "oldest" | "duration_desc" | "duration_asc";
   selector: "app-packs-list",
   templateUrl: "./packs-list.page.html",
   styleUrls: ["./packs-list.page.scss"],
-  imports: [CommonModule, FormsModule, IonicModule, NZModule, ReactiveFormsModule, ScrollingModule, NativeAdDisplayComponent],
+  imports: [CommonModule, FormsModule, IonicModule, NZModule, ReactiveFormsModule, ScrollingModule],
 })
 export class PacksListPage implements OnInit, OnDestroy {
   form!: FormGroup;
@@ -107,7 +106,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     // Load user type from settings
     this.settingsService.settings$.pipe(takeUntil(this.destroy$)).subscribe((settings) => {
       this.userType = settings.userType;
-      console.log("👤 [PacksList] User type loaded:", this.userType);
     });
 
     // Initialize current device ID
@@ -115,11 +113,8 @@ export class PacksListPage implements OnInit, OnDestroy {
       .getDeviceInfo()
       .then((info) => {
         this.currentDeviceId = info.deviceId;
-        console.log("📱 [PacksList] Current device ID:", this.currentDeviceId);
       })
-      .catch((err) => {
-        console.error("❌ [PacksList] Failed to get device info:", err);
-      });
+      .catch((err) => {});
 
     this.form = this.fb.group({
       status: [null], // PackStatus | null (cho API)
@@ -168,7 +163,6 @@ export class PacksListPage implements OnInit, OnDestroy {
       if (this.affiliateItem) {
         // Set random display index (0-5) so affiliate appears randomly in the list
         this.affiliateDisplayIndex = Math.floor(Math.random() * 6);
-        console.log("🛍️ [PacksList] Loaded affiliate item at display index:", this.affiliateDisplayIndex, this.affiliateItem);
       }
     }
   }
@@ -184,12 +178,10 @@ export class PacksListPage implements OnInit, OnDestroy {
         // Calculate the starting index of newly loaded items
         const pageSize = this.searchParamsNormal.pageSize; // or pageSize from search params
         const totalItemsBeforeNewBatch = this.currentSearchPacks.packs.length - pageSize;
-        
+
         // Set random display index within the newly loaded batch (0-9 within the new page)
         const randomOffsetInBatch = Math.floor(Math.random() * Math.min(10, pageSize)); // Show within first 10 of new batch
         this.affiliateDisplayIndex = Math.max(0, totalItemsBeforeNewBatch + randomOffsetInBatch);
-        
-        console.log("🛍️ [PacksList] Loaded affiliate item for LoadMore at index:", this.affiliateDisplayIndex, "Batch starts at:", totalItemsBeforeNewBatch, this.affiliateItem);
       }
     }
   }
@@ -213,21 +205,21 @@ export class PacksListPage implements OnInit, OnDestroy {
    */
   getAffiliateLink(item: AffiliateItem | null): string {
     if (!item) return "";
-    
+
     // For pack: get link from first product
     if (this.isAffiliatePack(item)) {
       const firstProduct = item.products?.[0];
       if (firstProduct?.links && firstProduct.links.length > 0) {
         return firstProduct.links[0];
       }
-    } 
+    }
     // For single product: get link directly
     else if (this.isAffiliateSingleProduct(item)) {
       if (item.links && item.links.length > 0) {
         return item.links[0];
       }
     }
-    
+
     return "";
   }
 
@@ -264,7 +256,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     const link = this.getAffiliateLink(item);
     if (link) {
       window.open(link, "_blank");
-      console.log("🔗 [PacksList] Opened affiliate link:", link);
     }
   }
 
@@ -278,7 +269,6 @@ export class PacksListPage implements OnInit, OnDestroy {
   // Refresh every time the tab becomes active
   async ionViewWillEnter() {
     // Use existing reload pipeline so loading state is handled consistently
-    console.log("👋 [PacksList] Leaving page - showing ads");
     this.reload$.next();
   }
 
@@ -303,7 +293,6 @@ export class PacksListPage implements OnInit, OnDestroy {
       // Wait for reload to complete
       await this.fetchBothTabs().toPromise();
     } catch (error) {
-      console.error("Refresh failed:", error);
     } finally {
       // Complete the refresh animation
       event.detail.complete();
@@ -336,7 +325,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     this.clearSelection(); // Clear selection when switching tabs
     // Don't reload on tab change - data is already loaded from init
     // Keep the existing reachedEnd flags as they should already be correctly set during fetchBothTabs()
-    console.log(`📑 [PacksList] Switched to ${tab === "normal" ? "🎥 Gói đơn" : "🔄 Trả hàng"} tab, data already preloaded`);
   }
 
   onSearch(): void {
@@ -359,16 +347,10 @@ export class PacksListPage implements OnInit, OnDestroy {
   }
 
   onDateChange(date: any) {
-    console.log("📅 Date changed event:", date);
     if (date) {
-      console.log("📅 Date toString():", date.toString());
-      console.log("📅 Date toISOString():", date.toISOString?.());
-      console.log("📅 Date type:", date.constructor?.name);
-
       // Log local date components
       if (date instanceof Date || date.toDate) {
         const d = date instanceof Date ? date : date.toDate();
-        console.log("📅 Local components - Year:", d.getFullYear(), "Month:", d.getMonth() + 1, "Date:", d.getDate());
       }
     }
     // Update form with the selected date
@@ -400,7 +382,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     } else {
       this.selectedVideoIds.add(videoId);
     }
-    console.log(`🎬 [PacksList] Selected videos:`, Array.from(this.selectedVideoIds));
   }
 
   // Check if video is selected
@@ -422,14 +403,11 @@ export class PacksListPage implements OnInit, OnDestroy {
 
     try {
       const videoIdsToDelete = Array.from(this.selectedVideoIds);
-      console.log(`🗑️ [PacksList] Deleting ${videoIdsToDelete.length} videos from ${this.activeTab} tab`);
 
       // Call appropriate service method based on active tab
       if (this.activeTab === "normal") {
-        console.log(`🎥 [PacksList] Calling removeNormalPacks()`);
         await this.packService.removeNormalPacks(videoIdsToDelete).toPromise();
       } else {
-        console.log(`🔄 [PacksList] Calling removeReturnVideos()`);
         await this.packService.removeReturnVideos(videoIdsToDelete).toPromise();
       }
 
@@ -440,7 +418,6 @@ export class PacksListPage implements OnInit, OnDestroy {
       this.onSearch();
       toast.success(`Đã xóa ${videoIdsToDelete.length} video`);
     } catch (error) {
-      console.error("❌ Delete failed:", error);
       toast.error("Xóa video thất bại");
     }
   }
@@ -451,13 +428,11 @@ export class PacksListPage implements OnInit, OnDestroy {
     for (const video of currentVideos) {
       this.selectedVideoIds.add(video._id);
     }
-    console.log(`✅ [PacksList] Selected all ${currentVideos.length} videos in current tab`);
   }
 
   // Clear all selections
   clearSelection(): void {
     this.selectedVideoIds.clear();
-    console.log(`📋 [PacksList] Cleared all selections`);
   }
 
   loadMore() {
@@ -490,36 +465,26 @@ export class PacksListPage implements OnInit, OnDestroy {
     // Fetch both normal and return videos simultaneously
     return this.packService.searchNormalPacks(this.searchParamsNormal).pipe(
       switchMap(async (normalResult) => {
-        console.log(`🚀 [normal] Fetched normal videos on init:`, normalResult);
         const sortedPacks = this.applySortToPacks(normalResult.packs);
         this.searchPacksNormal = { ...normalResult, packs: sortedPacks };
         // Check if reached end: total items >= totalItem, OR returned items < pageSize
         const itemsReturnedLessThanPageSize = (normalResult.packs?.length ?? 0) < this.searchParamsNormal.pageSize;
         this.reachedEndNormal = this.searchPacksNormal.packs.length >= normalResult.totalItem || itemsReturnedLessThanPageSize;
-        console.log(
-          `📊 [normal] reachedEndNormal: ${this.reachedEndNormal}, itemsNow: ${this.searchPacksNormal.packs.length}, totalItem: ${normalResult.totalItem}, itemsReturned: ${normalResult.packs?.length || 0}`,
-        );
-
         // Now fetch return videos
         return this.packService.searchReturnPacks(this.searchParamsReturn).toPromise();
       }),
       switchMap(async (returnResult) => {
-        console.log(`🚀 [return] Fetched return videos on init:`, returnResult);
         if (returnResult) {
           const sortedPacks = this.applySortToPacks(returnResult.packs);
           this.searchPacksReturn = { ...returnResult, packs: sortedPacks };
           // Check if reached end: total items >= totalItem, OR returned items < pageSize
           const itemsReturnedLessThanPageSize = (returnResult.packs?.length ?? 0) < this.searchParamsReturn.pageSize;
           this.reachedEndReturn = this.searchPacksReturn.packs.length >= returnResult.totalItem || itemsReturnedLessThanPageSize;
-          console.log(
-            `📊 [return] reachedEndReturn: ${this.reachedEndReturn}, itemsNow: ${this.searchPacksReturn.packs.length}, totalItem: ${returnResult.totalItem}, itemsReturned: ${returnResult.packs?.length || 0}`,
-          );
         }
         this.rebuildOwnerSet();
         return Promise.resolve();
       }),
       catchError(async (error) => {
-        console.log(`🚀 Error fetching both tabs:`, error);
         return Promise.resolve();
       }),
     );
@@ -536,11 +501,9 @@ export class PacksListPage implements OnInit, OnDestroy {
   private searchPacksNormalPage(append: boolean) {
     return this.packService.searchNormalPacks(this.searchParamsNormal).pipe(
       switchMap(async (apiResult) => {
-        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ apiResult:`, apiResult);
         return this.processSearchResult(apiResult, append);
       }),
       catchError(async (error) => {
-        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ error:`, error);
         return {
           packs: [],
           pageIdx: this.searchParamsNormal.pageIdx,
@@ -549,31 +512,23 @@ export class PacksListPage implements OnInit, OnDestroy {
         } as SearchPacksResult<PackDoc>;
       }),
       tap((res) => {
-        console.log(`🚀 [normal] ~ searchPacksNormalPage ~ res:`, res);
         if (res) {
           if (append) {
             // Filter out duplicates based on _id before appending
             const existingIds = new Set(this.searchPacksNormal.packs.map((p) => p._id));
             const newPacks = res.packs.filter((p) => !existingIds.has(p._id));
-            console.log(
-              `🔍 [normal] Duplicate check: API returned ${res.packs.length}, after filter: ${newPacks.length} new items (${res.packs.length - newPacks.length} duplicates)`,
-            );
             this.searchPacksNormal.packs = [...this.searchPacksNormal.packs, ...newPacks];
             this.searchPacksNormal.pageIdx = res.pageIdx;
             this.searchPacksNormal.totalItem = res.totalItem; // Update totalItem during append
           } else {
             this.searchPacksNormal = { ...res };
           }
-          console.log(`✅ [normal] Data updated:`, this.searchPacksNormal);
           this.rebuildOwnerSet();
         }
         // Check if reached end: total items now >= totalItem, OR returned items < pageSize
         const itemsReturnedLessThanPageSize = (res.packs?.length ?? 0) < this.searchParamsNormal.pageSize;
         const totalItemsNow = this.searchPacksNormal.packs?.length ?? 0;
         this.reachedEndNormal = totalItemsNow >= res.totalItem || itemsReturnedLessThanPageSize;
-        console.log(
-          `📊 [normal] reachedEndNormal: ${this.reachedEndNormal}, totalItemsNow: ${totalItemsNow}, totalItem: ${res.totalItem}, itemsReturned: ${res.packs?.length || 0}`,
-        );
       }),
     );
   }
@@ -581,11 +536,9 @@ export class PacksListPage implements OnInit, OnDestroy {
   private searchPacksReturnPage(append: boolean) {
     return this.packService.searchReturnPacks(this.searchParamsReturn).pipe(
       switchMap(async (apiResult) => {
-        console.log(`🚀 [return] ~ searchPacksReturnPage ~ apiResult:`, apiResult);
         return this.processSearchResult(apiResult, append);
       }),
       catchError(async (error) => {
-        console.log(`🚀 [return] ~ searchPacksReturnPage ~ error:`, error);
         return {
           packs: [],
           pageIdx: this.searchParamsReturn.pageIdx,
@@ -594,31 +547,23 @@ export class PacksListPage implements OnInit, OnDestroy {
         } as SearchPacksResult<PackDoc>;
       }),
       tap((res) => {
-        console.log(`🚀 [return] ~ searchPacksReturnPage ~ res:`, res);
         if (res) {
           if (append) {
             // Filter out duplicates based on _id before appending
             const existingIds = new Set(this.searchPacksReturn.packs.map((p) => p._id));
             const newPacks = res.packs.filter((p) => !existingIds.has(p._id));
-            console.log(
-              `🔍 [return] Duplicate check: API returned ${res.packs.length}, after filter: ${newPacks.length} new items (${res.packs.length - newPacks.length} duplicates)`,
-            );
             this.searchPacksReturn.packs = [...this.searchPacksReturn.packs, ...newPacks];
             this.searchPacksReturn.pageIdx = res.pageIdx;
             this.searchPacksReturn.totalItem = res.totalItem; // Update totalItem during append
           } else {
             this.searchPacksReturn = { ...res };
           }
-          console.log(`✅ [return] Data updated:`, this.searchPacksReturn);
           this.rebuildOwnerSet();
         }
         // Check if reached end: total items now >= totalItem, OR returned items < pageSize
         const itemsReturnedLessThanPageSize = (res.packs?.length ?? 0) < this.searchParamsReturn.pageSize;
         const totalItemsNow = this.searchPacksReturn.packs?.length ?? 0;
         this.reachedEndReturn = totalItemsNow >= res.totalItem || itemsReturnedLessThanPageSize;
-        console.log(
-          `📊 [return] reachedEndReturn: ${this.reachedEndReturn}, totalItemsNow: ${totalItemsNow}, totalItem: ${res.totalItem}, itemsReturned: ${res.packs?.length || 0}`,
-        );
       }),
     );
   }
@@ -644,9 +589,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     // Convert Dayjs date to ISO string for API (timezone aware)
     if (f.date) {
       try {
-        console.log("📅 Raw date from form:", f.date);
-        console.log("📅 Date type:", f.date?.constructor?.name);
-
         if (f.date && typeof f.date === "object") {
           let year = 0,
             month = 0,
@@ -655,28 +597,23 @@ export class PacksListPage implements OnInit, OnDestroy {
 
           // Handle Dayjs object
           if (f.date.format && typeof f.date.format === "function") {
-            console.log("📅 Detected Dayjs object");
             // For Dayjs, get the local date components directly
             year = f.date.year();
             month = f.date.month() + 1; // Dayjs month is 0-based
             day = f.date.date();
             dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            console.log("📅 Dayjs formatted (local):", dateStr, "year:", year, "month:", month, "day:", day);
           }
           // Handle native Date object
           else if (f.date instanceof Date) {
-            console.log("📅 Detected native Date");
             // For Date, get local date components
             year = f.date.getFullYear();
             month = f.date.getMonth() + 1;
             day = f.date.getDate();
             dateStr = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-            console.log("📅 Date formatted (local):", dateStr, "year:", year, "month:", month, "day:", day);
 
             // Extra debug: show what today's local date is
             const now = new Date();
             const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-            console.log("📅 Today's local date:", todayStr);
           }
 
           if (year > 0 && month > 0 && day > 0) {
@@ -688,25 +625,15 @@ export class PacksListPage implements OnInit, OnDestroy {
             (this.searchParamsNormal.endDate as any) = endOfDay;
             (this.searchParamsReturn.startDate as any) = startOfDay;
             (this.searchParamsReturn.endDate as any) = endOfDay;
-
-            console.log("📅 ✅ Date range set (LOCAL):", {
-              formatted: dateStr,
-              startDate: startOfDay.toISOString(),
-              endDate: endOfDay.toISOString(),
-              startLocal: `${startOfDay.getFullYear()}-${String(startOfDay.getMonth() + 1).padStart(2, "0")}-${String(startOfDay.getDate()).padStart(2, "0")} ${String(startOfDay.getHours()).padStart(2, "0")}:00:00`,
-              endLocal: `${endOfDay.getFullYear()}-${String(endOfDay.getMonth() + 1).padStart(2, "0")}-${String(endOfDay.getDate()).padStart(2, "0")} ${String(endOfDay.getHours()).padStart(2, "0")}:59:59`,
-            });
           }
         }
       } catch (error) {
-        console.error("❌ Error processing date:", error);
         this.searchParamsNormal.startDate = "";
         this.searchParamsNormal.endDate = "";
         this.searchParamsReturn.startDate = "";
         this.searchParamsReturn.endDate = "";
       }
     } else {
-      console.log("📅 No date selected, clearing filters");
       this.searchParamsNormal.startDate = "";
       this.searchParamsNormal.endDate = "";
       this.searchParamsReturn.startDate = "";
@@ -717,19 +644,6 @@ export class PacksListPage implements OnInit, OnDestroy {
     this.searchParamsNormal.sortBy = this.getSortParam(this.sortOpt);
     this.searchParamsReturn.pageSize = 10;
     this.searchParamsReturn.sortBy = this.getSortParam(this.sortOpt);
-
-    console.log("🔍 Final search params (Normal):", {
-      keyword: this.searchParamsNormal.keyword,
-      startDate: this.searchParamsNormal.startDate,
-      endDate: this.searchParamsNormal.endDate,
-      sortBy: this.searchParamsNormal.sortBy,
-    });
-    console.log("🔍 Final search params (Return):", {
-      keyword: this.searchParamsReturn.keyword,
-      startDate: this.searchParamsReturn.startDate,
-      endDate: this.searchParamsReturn.endDate,
-      sortBy: this.searchParamsReturn.sortBy,
-    });
   }
 
   private getSortParam(opt: SortOpt): { key: string; value: string } {
@@ -748,12 +662,9 @@ export class PacksListPage implements OnInit, OnDestroy {
   }
 
   // ---------- UI helpers ----------
-  onThumbnailLoad(packId: string): void {
-    console.log(`✅ Thumbnail loaded for pack: ${packId}`);
-  }
+  onThumbnailLoad(packId: string): void {}
 
   onThumbnailError(packId: string, event: any): void {
-    console.error(`❌ Thumbnail failed for pack: ${packId}`, event);
     event.target.style.display = "none";
   }
 
@@ -766,7 +677,6 @@ export class PacksListPage implements OnInit, OnDestroy {
       const isLocal = packWithCache._isCached || (pack.deviceId ?? "").trim() === this.currentDeviceId;
       return isLocal;
     });
-    console.log("🎥 [PacksList] Normal video count:", normalPacks.length, "from", this.searchPacksNormal.totalItem, "total items");
     return normalPacks.length;
   }
 
@@ -779,7 +689,6 @@ export class PacksListPage implements OnInit, OnDestroy {
       const isLocal = packWithCache._isCached || (pack.deviceId ?? "").trim() === this.currentDeviceId;
       return isLocal;
     });
-    console.log("🔄 [PacksList] Return video count:", returnPacks.length, "from", this.searchPacksReturn.totalItem, "total items");
     return returnPacks.length;
   }
 
@@ -806,7 +715,6 @@ export class PacksListPage implements OnInit, OnDestroy {
 
     // Ưu tiên URL nếu có
     if (thumbnailUrl && thumbnailUrl.startsWith("http")) {
-      console.log("📸 Using thumbnail URL:", thumbnailUrl?.substring(0, 50));
       return thumbnailUrl;
     }
 

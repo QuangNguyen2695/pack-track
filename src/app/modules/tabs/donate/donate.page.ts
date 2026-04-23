@@ -145,7 +145,6 @@ export class DonatePage implements OnInit {
       return;
     }
 
-    console.log(`🚀 [Donate] Quick payment initiated for ${method.name} - ${this.selectedAmount} VND`);
     await this.processPayment(method);
   }
 
@@ -154,7 +153,6 @@ export class DonatePage implements OnInit {
    */
   private async processPayment(method: any) {
     try {
-      console.log(`💳 [Donate] Processing payment via ${method.name}`);
 
       let success = false;
 
@@ -183,7 +181,6 @@ export class DonatePage implements OnInit {
         await toast.present();
       }
     } catch (error) {
-      console.error(`❌ [Donate] Payment error:`, error);
       const toast = await this.toastController.create({
         message: "❌ Lỗi xử lý thanh toán",
         duration: 2000,

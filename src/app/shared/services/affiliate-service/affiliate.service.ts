@@ -22,9 +22,7 @@ export class AffiliateService {
   setAffiliateData(dataStr: string): void {
     if (dataStr && dataStr.trim()) {
       this.parseAndCacheData(dataStr);
-      console.log("✅ [AffiliateService] Affiliate data set from AppComponent:", this.affiliateData?.items.length || 0, "items");
     } else {
-      console.warn("⚠️ [AffiliateService] Affiliate data string is empty");
     }
   }
 
@@ -38,12 +36,9 @@ export class AffiliateService {
       if (parsed && Array.isArray(parsed.items)) {
         this.affiliateData = parsed;
         this.saveToCache(parsed);
-        console.log("💾 [AffiliateService] Affiliate data cached with", parsed.items.length, "items");
       } else {
-        console.warn("⚠️ [AffiliateService] Invalid affiliate data structure");
       }
     } catch (error) {
-      console.error("❌ [AffiliateService] Failed to parse affiliate data:", error);
     }
   }
 
@@ -56,7 +51,6 @@ export class AffiliateService {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify(data));
       localStorage.setItem(this.CACHE_TIMESTAMP_KEY, timestamp.toString());
     } catch (err) {
-      console.warn("⚠️ [AffiliateService] Failed to save cache:", err);
     }
   }
 
@@ -69,7 +63,6 @@ export class AffiliateService {
       const timestamp = localStorage.getItem(this.CACHE_TIMESTAMP_KEY);
 
       if (!cachedData || !timestamp) {
-        console.log("📭 [AffiliateService] No cache found");
         return;
       }
 
@@ -81,14 +74,11 @@ export class AffiliateService {
         const parsed = JSON.parse(cachedData) as AffiliateDataConfig;
         this.affiliateData = parsed;
         const ageHours = Math.round(ageMs / (1000 * 60 * 60));
-        console.log(`✅ [AffiliateService] Loaded from cache (${ageHours}h old):`, parsed.items.length, "items");
       } else {
-        console.log("⏰ [AffiliateService] Cache expired");
         localStorage.removeItem(this.CACHE_KEY);
         localStorage.removeItem(this.CACHE_TIMESTAMP_KEY);
       }
     } catch (err) {
-      console.warn("⚠️ [AffiliateService] Error reading cache:", err);
     }
   }
 
@@ -99,12 +89,10 @@ export class AffiliateService {
    */
   getItemByIndex(index: number): AffiliateItem | null {
     if (!this.affiliateData || !Array.isArray(this.affiliateData.items)) {
-      console.warn("⚠️ [AffiliateService] Affiliate data not available");
       return null;
     }
 
     if (index < 0 || index >= this.affiliateData.items.length) {
-      console.warn(`⚠️ [AffiliateService] Index ${index} out of bounds (total: ${this.affiliateData.items.length})`);
       return null;
     }
 
@@ -117,7 +105,6 @@ export class AffiliateService {
    */
   getRandomItem(): AffiliateItem | null {
     if (!this.affiliateData || !Array.isArray(this.affiliateData.items) || this.affiliateData.items.length === 0) {
-      console.warn("⚠️ [AffiliateService] No affiliate items available");
       return null;
     }
 
@@ -166,9 +153,7 @@ export class AffiliateService {
       localStorage.removeItem(this.CACHE_KEY);
       localStorage.removeItem(this.CACHE_TIMESTAMP_KEY);
       this.affiliateData = null;
-      console.log("✅ [AffiliateService] Cache cleared");
     } catch (err) {
-      console.warn("⚠️ [AffiliateService] Failed to clear cache:", err);
     }
   }
 }

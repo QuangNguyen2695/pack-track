@@ -65,6 +65,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   // Chống start/stop lặp
   private barcodeBusy = false;
   private barcodeCooldownUntil = 0;
+  private barcodeListenerAttached = false; // Flag to prevent duplicate listeners
 
   // --- Auto save khi mất mã hiện tại ---
   private readonly INACTIVITY_MS = 5000; // 5 giây
@@ -114,7 +115,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       if (state["recordMode"] === "return") {
         this.recordMode = "return";
         this.returnOrderId = state["orderCode"];
-        console.log(`🎥 [ScanRecord] Return video mode enabled for order: ${this.returnOrderId}`);
       }
     }
   }
@@ -123,9 +123,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     // Cho phép màn hình tắt khi destroy page
     try {
       await KeepAwake.allowSleep();
-      console.log("Keep awake deactivated");
     } catch (error) {
-      console.warn("Failed to deactivate keep awake:", error);
     }
 
     // Hide timestamp overlay when page is destroyed
@@ -144,6 +142,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     this.recState = "idle";
     this.barcodeBusy = false;
     this.barcodeCooldownUntil = 0;
+    this.barcodeListenerAttached = false; // Reset listener flag
     this.currentCode = null;
     this.video = null;
 
@@ -154,9 +153,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     // Cho phép màn hình tắt khi rời khỏi page
     try {
       await KeepAwake.allowSleep();
-      console.log("Keep awake deactivated");
     } catch (error) {
-      console.warn("Failed to deactivate keep awake:", error);
     }
 
     // Hide timestamp overlay when navigating away
@@ -175,6 +172,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     this.recState = "idle";
     this.barcodeBusy = false;
     this.barcodeCooldownUntil = 0;
+    this.barcodeListenerAttached = false; // Reset listener flag
     this.currentCode = null;
     this.video = null;
 
@@ -189,10 +187,12 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     if (this.platform.is("ios") || this.platform.is("android")) {
       try {
         await KeepAwake.keepAwake();
-        console.log("Keep awake activated");
       } catch (error) {
-        console.warn("Failed to activate keep awake:", error);
       }
+      
+      // Hiển thị reward ads khi vào page
+      await this.ads.checkAndShowRewardAd().catch(() => {});
+      
       await this.startInlinePreview();
     }
   }
@@ -204,12 +204,12 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
       // Start camera - plugin will automatically request permissions if needed
       await CameraBarcode.removeAllListeners().catch(() => {});
+      this.barcodeListenerAttached = false; // Reset flag when listeners are removed
       await CameraBarcode.startPreview({ toBack: true, withAudio: false });
 
       // Success! Camera is accessible
       await this.onCameraStartSuccess();
     } catch (error) {
-      console.error("❌ [ScanRecord] Error in startInlinePreview:", error);
       this.infoText = "❌ Không thể mở camera";
     }
   }
@@ -240,6 +240,10 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   private async attachBarcodeListener() {
+    // Prevent attaching multiple listeners for the same barcode event
+    if (this.barcodeListenerAttached) return;
+    
+    this.barcodeListenerAttached = true;
     await CameraBarcode.addListener("barcode", async (e) => {
       const code = e?.value?.toString?.().trim?.() ?? e?.value;
       const now = (e as any)?.ts ?? Date.now();
@@ -250,7 +254,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   private async handleBarcodeEvent(code: string | null, now: number) {
     // Disable barcode scanning in return video mode - use manual button instead
     if (this.recordMode === "return") {
-      console.log(`📦 [ScanRecord] Return video mode - barcode scan disabled, use manual button`);
       return;
     }
 
@@ -279,9 +282,12 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         // LẦN ĐẦU: phát start (song song) → bắt đầu quay theo mã
         this.loading.loadingOn();
         const voiceP = this.safePlay(this.newOrderVoice); // fire-and-forget
-        await this.startRecordingForCode(code);
-        await voiceP.catch(() => {});
-        this.loading.loadingOff();
+        try {
+          await this.startRecordingForCode(code);
+          await voiceP.catch(() => {});
+        } finally {
+          this.loading.loadingOff();
+        }
         this.barcodeCooldownUntil = now + 1000;
         return;
       }
@@ -290,9 +296,9 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         // ĐANG QUAY & GẶP MÃ MỚI → LƯU ĐƠN HÀNG HIỆN TẠI RỒI BẮT ĐẦU ĐƠN MỚI
         await this.saveCurrentOrderAndStartNext(code, now);
       }
-    } catch {
+    } catch (error) {
       this.loading.loadingOff();
-      this.toast("Có lỗi trong quá trình ghi/lưu video");
+      await this.toast("Có lỗi trong quá trình ghi/lưu video");
     } finally {
       this.barcodeBusy = false;
     }
@@ -304,33 +310,33 @@ export class ScanRecordPage implements OnInit, OnDestroy {
     this.loading.loadingOn();
     this.stopCounter();
 
-    // 1) Phát "new order" NGAY và KHÔNG chờ (song song với các thao tác khác)
-    this.safePlay(this.newOrderVoice).catch(() => {});
+    try {
+      // 1) Phát "new order" NGAY và KHÔNG chờ
+      this.safePlay(this.newOrderVoice).catch(() => {});
 
-    // 2) Dừng clip hiện tại để lấy file (bắt buộc phải await)
-    const savedUri = await this.stopRecordingAndGetPath();
+      // 2) Dừng clip hiện tại để lấy file
+      const savedUri = await this.stopRecordingAndGetPath();
 
-    // 3) SNAPSHOT video cũ TRƯỚC KHI bắt đầu video mới (tránh race condition)
-    const oldVideo = this.video ? { ...this.video } : null;
+      // 3) SNAPSHOT video cũ TRƯỚC KHI bắt đầu video mới
+      const oldVideo = this.video ? { ...this.video } : null;
 
-    // 4) Bắt đầu SAVE ở HẬU CẢNH (không chờ) + voice "saving" → "success"
-    (async () => {
+      // 4) Lưu video hiện tại ĐỒNG BỘ và chờ đến khi hoàn thành
       this.savingInProgress = true;
       try {
-        await this.persistPack(savedUri, oldVideo).catch(() => {});
+        await this.persistPack(savedUri, oldVideo);
       } finally {
         this.savingInProgress = false;
       }
-    })().catch(() => {});
 
-    // 5) (tuỳ chọn) nghỉ rất ngắn cho encoder nhả resource rồi QUAY LẠI NGAY với mã mới
-    await this.sleep(120);
-    if (nextCode) {
-      await this.startRecordingForCode(nextCode);
-      this.barcodeCooldownUntil = now + 1000;
+      // 5) Nghỉ rất ngắn để encoder nhả resource
+      await this.sleep(120);
+      if (nextCode) {
+        await this.startRecordingForCode(nextCode);
+        this.barcodeCooldownUntil = now + 1000;
+      }
+    } finally {
+      this.loading.loadingOff();
     }
-
-    this.loading.loadingOff();
   }
 
   // =================== RECORD HELPERS ===================
@@ -379,7 +385,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
           isReturn: this.recordMode === "return", // truyền cờ return để plugin áp dụng cấu hình tối ưu cho return video
         } as any));
       } catch {}
-      console.log("recordingId", recordingId);
       this.startCounter();
       this.recState = "recording";
     } catch (e) {
@@ -431,7 +436,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         this.stopCounter();
         const savedUri = await this.stopRecordingAndGetPath();
         const videoSnapshot = this.video ? { ...this.video } : null;
-        await this.persistPack(savedUri, videoSnapshot).catch(() => {});
+        await this.persistPack(savedUri, videoSnapshot);
         await this.safePlay(this.successVoice);
       }
     } finally {
@@ -455,7 +460,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
     try {
       this.loading.loadingOn();
-      console.log(`🎥 [ScanRecord] Starting manual return video for order: ${this.returnOrderId}`);
 
       // Start recording with the orderCode from pack-detail
       await this.startRecordingForCode(this.returnOrderId);
@@ -463,7 +467,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       await this.safePlay(this.newOrderVoice);
       this.loading.loadingOff();
     } catch (error) {
-      console.error("❌ [ScanRecord] Failed to start return video:", error);
       await this.toast("❌ Lỗi khi bắt đầu quay");
       this.loading.loadingOff();
     }
@@ -471,8 +474,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
 
   async toggleTorch() {
     try {
-      console.log("Current torch state:", this.torchOn);
-      console.log("Current recording state:", this.recState);
 
       // Kiểm tra xem có đang ở trạng thái có thể sử dụng torch không
       if (this.recState === "idle") {
@@ -485,7 +486,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       }
 
       const newTorchState = !this.torchOn;
-      console.log("Setting torch to:", newTorchState);
 
       // Thử set torch với timeout
       const torchPromise = CameraBarcode.setTorchState(newTorchState);
@@ -646,7 +646,7 @@ export class ScanRecordPage implements OnInit, OnDestroy {
       await this.safePlay(this.savingOrderVoice);
       const savedUri = await this.stopRecordingAndGetPath(); // đã stop & cập nhật this.video
       const videoSnapshot = this.video ? { ...this.video } : null;
-      await this.persistPack(savedUri, videoSnapshot).catch(() => {});
+      await this.persistPack(savedUri, videoSnapshot);
       await this.safePlay(this.successVoice);
     } finally {
       this.resetCounter();
@@ -655,82 +655,85 @@ export class ScanRecordPage implements OnInit, OnDestroy {
   }
 
   // =================== PACK PERSIST ===================
-  private async persistPack(savedUri?: string, videoData?: VideoMeta | null) {
-    try {
-      const dev = await this.deviceInfo.getDeviceInfo();
+  private persistPack(savedUri?: string, videoData?: VideoMeta | null): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const dev = await this.deviceInfo.getDeviceInfo();
 
-      const v = videoData ?? this.video ?? { orderCode: this.currentCode ?? null };
-      const uri = savedUri ?? v.videoUri;
+        const v = videoData ?? this.video ?? { orderCode: this.currentCode ?? null };
+        const uri = savedUri ?? v.videoUri;
 
-      let size = v.videoFileSize;
-      if (!size && uri) {
-        size = await this.getFileSizeBytes(uri);
-      }
+        let size = v.videoFileSize;
+        if (!size && uri) {
+          size = await this.getFileSizeBytes(uri);
+        }
 
-      // Generate thumbnail from video
-      let thumbnailBase64: string | undefined;
-      if (uri) {
-        thumbnailBase64 = await this.generateThumbnail(uri);
-      }
+        // Generate thumbnail from video
+        let thumbnailBase64: string | undefined;
+        if (uri) {
+          thumbnailBase64 = await this.generateThumbnail(uri);
+        }
 
-      // Generate incrementing _id with UUID prefix
-      const timestamp = Date.now();
-      const uniqueId = Math.floor(Math.random() * 10000);
-      const incrementingId = `${timestamp}-${uniqueId}`;
+        // Generate incrementing _id with UUID prefix
+        const timestamp = Date.now();
+        const uniqueId = Math.floor(Math.random() * 10000);
+        const incrementingId = `${timestamp}-${uniqueId}`;
 
-      const payload = {
-        _id: incrementingId,
-        deviceId: dev.deviceId,
-        packNumber: v.orderCode || this.currentCode || "UNKNOWN",
-        orderCode: v.orderCode || this.currentCode || undefined,
-        createDate: new Date().toISOString(),
-        startRecordDate: v.startRecordDate ? v.startRecordDate.toISOString() : "", // ✅ set ngay khi bắt đầu
-        endRecordDate: v.endRecordDate ? v.endRecordDate.toISOString() : new Date().toISOString(),
-        timeRecordedMs: typeof v.timeRecordedMs === "number" ? v.timeRecordedMs : this.duration * 1000,
-        status: "recorded" as const,
-        videoStorage: uri ? ("local" as const) : undefined,
-        videoStorageKey: uri,
-        videoFileName: v.videoFileName ?? (v.orderCode ? `${v.orderCode}.mp4` : undefined),
-        videoFileSize: size,
-        videoMimeType: v.videoMimeType ?? "video/mp4",
-        thumbnailStorage: thumbnailBase64 ? ("local" as const) : undefined,
-        thumbnailBase64: thumbnailBase64,
-        videoType: this.recordMode === "return" ? ("return" as const) : ("normal" as const),
-        appVersion: dev.appVersion,
-        notes: undefined,
-      };
+        const payload = {
+          _id: incrementingId,
+          deviceId: dev.deviceId,
+          packNumber: v.orderCode || this.currentCode || "UNKNOWN",
+          orderCode: v.orderCode || this.currentCode || undefined,
+          createDate: new Date().toISOString(),
+          startRecordDate: v.startRecordDate ? v.startRecordDate.toISOString() : "", // ✅ set ngay khi bắt đầu
+          endRecordDate: v.endRecordDate ? v.endRecordDate.toISOString() : new Date().toISOString(),
+          timeRecordedMs: typeof v.timeRecordedMs === "number" ? v.timeRecordedMs : this.duration * 1000,
+          status: "recorded" as const,
+          videoStorage: uri ? ("local" as const) : undefined,
+          videoStorageKey: uri,
+          videoFileName: v.videoFileName ?? (v.orderCode ? `${v.orderCode}.mp4` : undefined),
+          videoFileSize: size,
+          videoMimeType: v.videoMimeType ?? "video/mp4",
+          thumbnailStorage: thumbnailBase64 ? ("local" as const) : undefined,
+          thumbnailBase64: thumbnailBase64,
+          videoType: this.recordMode === "return" ? ("return" as const) : ("normal" as const),
+          appVersion: dev.appVersion,
+          notes: undefined,
+        };
 
-      // Use separate storage for return videos
-      const createMethod = this.recordMode === "return" ? this.packService.createPackReturn(payload) : this.packService.create(payload);
+        // Use separate storage for return videos
+        const createMethod = this.recordMode === "return" ? this.packService.createPackReturn(payload) : this.packService.create(payload);
 
-      createMethod.subscribe({
-        next: (result) => {
-          if (result && result._id) {
-            this.statisticsService.incrementVideosRecorded();
-            console.log(`✅ [ScanRecord] Video saved: ${result._id}, type: ${result.videoType}`);
+        createMethod.subscribe({
+          next: (result) => {
+            if (result && result._id) {
+              this.statisticsService.incrementVideosRecorded();
 
-            // Navigate back to pack-detail for return videos
-            if (this.recordMode === "return") {
-              console.log(`📦 [ScanRecord] Return video saved, navigating back to pack-detail`);
-              setTimeout(() => {
-                this.router.navigate(["/tabs/home"]); // Go back to home/packs list
-              }, 1500);
+              // Navigate back to pack-detail for return videos
+              if (this.recordMode === "return") {
+                setTimeout(() => {
+                  this.router.navigate(["/tabs/home"]); // Go back to home/packs list
+                  resolve();
+                }, 1500);
+              } else {
+                resolve();
+              }
+            } else {
+              // API trả về nhưng không thành công
+              this.statisticsService.incrementVideosRecorded();
+              resolve();
             }
-          } else {
-            // API trả về nhưng không thành công, cache video
-          }
-        },
-        error: (error) => {
-          console.error("API save failed, caching video:", error);
-          // Cache video khi API call fail
-          // Vẫn tăng counter vì video đã được quay
-          this.statisticsService.incrementVideosRecorded();
-          // Cache video khi API call fail
-        },
-      });
-    } catch (error) {
-      console.error("Failed to persist pack:", error);
-    }
+          },
+          error: (error) => {
+            // Cache video khi API call fail
+            this.statisticsService.incrementVideosRecorded();
+            resolve(); // Vẫn resolve vì video đã được quay
+          },
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 
   private async getFileSizeBytes(path: string): Promise<number | undefined> {
@@ -801,7 +804,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
             // If base64 is too large (>50KB), don't send it
             // Rough estimate: 1 char ≈ 0.75 bytes, so 50KB ≈ 66k chars
             if (base64.length > 66000) {
-              console.warn("Thumbnail too large, skipping:", base64.length, "chars");
               cleanup();
               resolve(undefined);
               return;
@@ -813,7 +815,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
             cleanup();
             resolve(base64);
           } catch (e) {
-            console.error("Error generating thumbnail:", e);
             cleanup();
             resolve(undefined);
           }
@@ -830,7 +831,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
         };
 
         const onError = () => {
-          console.error("Error loading video for thumbnail");
           cleanup();
           resolve(undefined);
         };
@@ -848,7 +848,6 @@ export class ScanRecordPage implements OnInit, OnDestroy {
           resolve(undefined);
         }, 5000);
       } catch (e) {
-        console.error("Failed to generate thumbnail:", e);
         resolve(undefined);
       }
     });
@@ -873,13 +872,10 @@ export class ScanRecordPage implements OnInit, OnDestroy {
    */
   private async checkTorchCapabilities() {
     try {
-      console.log("Testing torch capabilities...");
 
       // Thử bật torch một cách im lặng để test
       await CameraBarcode.setTorchState(false);
-      console.log("Torch capabilities: OK");
     } catch (error) {
-      console.warn("Torch not available on this device:", error);
 
       // Disable torch button hoặc thông báo user
       // this.torchSupported = false; // có thể thêm flag này vào component

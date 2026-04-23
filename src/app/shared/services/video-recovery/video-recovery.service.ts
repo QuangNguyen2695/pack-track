@@ -57,11 +57,9 @@ export class VideoRecoveryService {
    */
   async recoverOrphanedVideos(isForce: boolean = false): Promise<number> {
     try {
-      console.log("🎬 [VideoRecovery] Starting recovery process...");
 
       // Check if recovery was already done
       if ((await this.isRecoveryAlreadyDone()) && !isForce) {
-        console.log("✅ [VideoRecovery] Recovery already completed, skipping");
         return 0;
       }
 
@@ -70,11 +68,8 @@ export class VideoRecoveryService {
       const existingPacks = await this.packService.getAllPacks();
       const existingPaths = new Set(existingPacks.map((p) => p.videoStorageKey).filter((p) => !!p));
 
-      console.log(`📦 [VideoRecovery] Found ${existingPacks.length} existing packs`);
-
       // Scan device media library
       const videos = await this.scanDeviceVideos();
-      console.log(`🎥 [VideoRecovery] Found ${videos.length} videos in device`);
 
       if (videos.length === 0) {
         await this.markRecoveryDone();
@@ -87,7 +82,6 @@ export class VideoRecoveryService {
 
       // Filter out videos that are already tracked
       const orphanedVideos = videos.filter((v) => !existingPaths.has(v.filePath));
-      console.log(`🔍 [VideoRecovery] Found ${orphanedVideos.length} orphaned videos`);
 
       if (orphanedVideos.length === 0) {
         await this.markRecoveryDone();
@@ -97,7 +91,6 @@ export class VideoRecoveryService {
 
       // Reconstruct packs from orphaned videos
       const recoveredPacks = await this.reconstructPacksFromVideos(orphanedVideos);
-      console.log(`📋 [VideoRecovery] Reconstructed ${recoveredPacks.length} packs`);
 
       // Update progress - now saving
       this.recoveryProgress.startSaving(recoveredPacks.length);
@@ -105,7 +98,6 @@ export class VideoRecoveryService {
       // Save recovered packs to storage
       if (recoveredPacks.length > 0) {
         await this.saveRecoveredPacks(recoveredPacks);
-        console.log(`✅ [VideoRecovery] Saved ${recoveredPacks.length} recovered packs to storage`);
       }
 
       // Mark recovery as done
@@ -116,7 +108,6 @@ export class VideoRecoveryService {
 
       return recoveredPacks.length;
     } catch (error) {
-      console.error("❌ [VideoRecovery] Recovery failed:", error);
       this.recoveryProgress.error(String(error));
       return 0;
     }
@@ -135,8 +126,6 @@ export class VideoRecoveryService {
 
       let deviceVideos: any[] = [];
       try {
-        console.log("🔥 PLATFORM =", Capacitor.getPlatform());
-        console.log("🔥 CALLING getAllVideos...");
 
         // Try to get videos with retry logic for permission timing issues
         let result: any;
@@ -147,18 +136,15 @@ export class VideoRecoveryService {
           try {
             result = await Video.getAllVideos();
             if (result?.videos) {
-              console.log("🔥 RESULT =", result);
               break; // Success, exit retry loop
             }
             retries++;
             if (retries < maxRetries) {
-              console.log(`⚠️ No videos returned, retrying... (${retries}/${maxRetries})`);
               await this.sleep(500); // Wait 500ms before retry
             }
           } catch (e) {
             retries++;
             if (retries < maxRetries) {
-              console.log(`⚠️ getAllVideos failed, retrying... (${retries}/${maxRetries}):`, e);
               await this.sleep(500); // Wait 500ms before retry
             } else {
               throw e;
@@ -167,9 +153,7 @@ export class VideoRecoveryService {
         }
 
         deviceVideos = result?.videos || [];
-        console.log(`📂 [VideoRecovery] Found ${deviceVideos.length} videos from MediaStore`);
       } catch (e) {
-        console.warn("⚠️ [VideoRecovery] Cannot query MediaStore", e);
       }
 
       for (const v of deviceVideos) {
@@ -200,13 +184,10 @@ export class VideoRecoveryService {
 
         const durationText = v.duration ? `${(v.duration / 1000).toFixed(2)}s` : "?";
         const hasThumbnail = v.thumbnail ? "✅" : "❌";
-        console.log(`✅ [VideoRecovery] Added: ${v.fileName} (${recVideo.videoType}, ${durationText}, thumb: ${hasThumbnail})`);
       }
 
-      console.log(`📂 [VideoRecovery] Total videos: ${videos.length}`);
       return videos;
     } catch (error) {
-      console.error("❌ [VideoRecovery] Failed to scan device videos:", error);
       return [];
     }
   }
@@ -228,13 +209,11 @@ export class VideoRecoveryService {
         let thumbnailBase64: string | undefined;
         if (video.thumbnailBase64) {
           thumbnailBase64 = video.thumbnailBase64;
-          console.log(`📸 [VideoRecovery] Using thumbnail from plugin for ${video.fileName}`);
         } else {
           // Fallback: try to generate thumbnail (if plugin didn't provide one)
           try {
             thumbnailBase64 = await this.generateVideoThumbnail(video.filePath);
           } catch (error) {
-            console.warn(`⚠️ [VideoRecovery] Failed to generate thumbnail for ${video.fileName}:`, error);
           }
         }
 
@@ -268,11 +247,7 @@ export class VideoRecoveryService {
         const pack = this.createPackFromPayload(payload);
         packs.push(pack);
 
-        console.log(
-          `✅ [VideoRecovery] Reconstructed pack: ${pack.packNumber} (${(timeRecordedMs / 1000).toFixed(2)}s) [${index + 1}/${videos.length}]`,
-        );
       } catch (error) {
-        console.error(`❌ [VideoRecovery] Failed to reconstruct pack for ${video.fileName}:`, error);
       }
     }
 
@@ -290,7 +265,6 @@ export class VideoRecoveryService {
       // This would require additional native plugin integration
       return undefined;
     } catch (error) {
-      console.warn("⚠️ [VideoRecovery] Thumbnail generation not implemented:", error);
       return undefined;
     }
   }
@@ -350,11 +324,7 @@ export class VideoRecoveryService {
         if (newNormalPacks.length > 0) {
           const merged = [...existingPacks, ...newNormalPacks];
           await this.packService.saveAllPacks(merged);
-          console.log(
-            `⏾️ [VideoRecovery] Saved ${newNormalPacks.length} new normal packs (${normalPacks.length - newNormalPacks.length} duplicates filtered)`,
-          );
         } else {
-          console.log(`⏾️ [VideoRecovery] All ${normalPacks.length} normal packs already exist (duplicates detected)`);
         }
       }
 
@@ -369,15 +339,10 @@ export class VideoRecoveryService {
         if (newReturnVideos.length > 0) {
           const merged = [...existingReturnVideos, ...newReturnVideos];
           await this.packService.saveAllReturnVideos(merged);
-          console.log(
-            `⏾️ [VideoRecovery] Saved ${newReturnVideos.length} new return videos (${returnVideos.length - newReturnVideos.length} duplicates filtered)`,
-          );
         } else {
-          console.log(`⏾️ [VideoRecovery] All ${returnVideos.length} return videos already exist (duplicates detected)`);
         }
       }
     } catch (error) {
-      console.error("❌ [VideoRecovery] Failed to save recovered packs:", error);
       throw error;
     }
   }
@@ -465,9 +430,7 @@ export class VideoRecoveryService {
   private async markRecoveryDone(): Promise<void> {
     try {
       localStorage.setItem(this.RECOVERY_MARKER, `v${this.RECOVERY_MARKER_VERSION}`);
-      console.log("📍 [VideoRecovery] Marked recovery as done");
     } catch (error) {
-      console.error("❌ [VideoRecovery] Failed to mark recovery done:", error);
     }
   }
 
@@ -479,10 +442,8 @@ export class VideoRecoveryService {
     try {
       localStorage.removeItem(this.RECOVERY_MARKER);
       if (verbose) {
-        console.log("🔄 [VideoRecovery] Recovery marker reset - next recovery will run again");
       }
     } catch (error) {
-      console.error("❌ [VideoRecovery] Failed to reset recovery marker:", error);
     }
   }
 
@@ -490,7 +451,6 @@ export class VideoRecoveryService {
    * Manually trigger recovery for testing
    */
   public async manualRecovery(): Promise<number> {
-    console.log("🔄 [VideoRecovery] Manual recovery triggered");
     // Reset marker to allow re-running
     await this.resetRecoveryMarker(false);
     // Run recovery

@@ -54,7 +54,6 @@ async pathToBase64Any(rawPath: string): Promise<string | null> {
     });
     return base64 || null;
   } catch (e) {
-    console.warn('[pathToBase64Any] fallback failed', e);
     return null;
   }
 }
